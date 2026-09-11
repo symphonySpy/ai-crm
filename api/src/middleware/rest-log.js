@@ -87,8 +87,15 @@ function restLog(req, res, next) {
       request_date: requestDate,
       response_date: responseDate,
       query_json: Object.keys(req.query || {}).length ? redactForStorage(req.query) : null,
-      request_body:
-        req.body && Object.keys(req.body).length ? redactForStorage(req.body) : null,
+      // The LINE webhook keeps its body as a raw Buffer so the signature can be checked
+      // over the exact bytes. Storing that verbatim would put an unparsed blob in a JSON
+      // column, and the payload is already kept in full in line_webhook_events, so the
+      // size is recorded and the content is left where it belongs.
+      request_body: Buffer.isBuffer(req.body)
+        ? { _raw: true, _bytes: req.body.length }
+        : req.body && Object.keys(req.body).length
+          ? redactForStorage(req.body)
+          : null,
       response_body: redactForStorage(responsePayload),
       user_id: req.user ? req.user.id : null,
       ip: req.ip ? req.ip.slice(0, 45) : null,

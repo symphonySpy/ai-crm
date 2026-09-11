@@ -11,6 +11,8 @@ const { ok, fail } = require('./lib/api-response');
 const authRoutes = require('./routes/auth');
 const leadRoutes = require('./routes/leads');
 const directoryRoutes = require('./routes/directory');
+const messageRoutes = require('./routes/messages');
+const lineWebhookRoutes = require('./routes/line-webhook');
 
 function createApp() {
   const app = express();
@@ -23,13 +25,6 @@ function createApp() {
 
   app.use(requestContext);
 
-  // NOTE for the LINE webhook, which is not mounted yet: its route must parse the RAW
-  // body, because the signature is computed over the exact bytes LINE sent. Mounting
-  // express.json() ahead of it would leave verification comparing a re-serialised copy,
-  // which never matches — and the tempting "fix" for that is to disable verification.
-  // The webhook router therefore installs express.raw() on its own path, before this.
-  app.use(express.json({ limit: '1mb' }));
-
   if (!process.env.SESSION_SECRET) {
     throw new Error('SESSION_SECRET is required: session cookies cannot be signed without it');
   }
@@ -40,6 +35,20 @@ function createApp() {
   // after attachUser so the row knows who called, and after express.json so it sees the
   // parsed body. Writes happen once the response has been sent (middleware/rest-log.js).
   app.use(restLog);
+
+  // MOUNTED BEFORE express.json ON PURPOSE. The LINE signature is computed over the
+  // exact bytes LINE sent, so this route needs the raw body; a parsed and re-serialised
+  // copy differs by whitespace and key order and would never verify. The tempting fix
+  // for that mismatch is to switch verification off, which is why the ordering is called
+  // out here rather than left to be rediscovered.
+  //
+  // It sits after the session middleware only so that rest_log covers it as well — LINE
+  // authenticates with a signature, not a cookie, and never has a user.
+  app.use('/webhooks/line', captureMount, lineWebhookRoutes);
+
+  app.use(express.json({ limit: '1mb' }));
+
+
 
   // Liveness only. It deliberately does not touch the database: a health check that
   // fails when the database is briefly unreachable invites the platform to restart a
@@ -67,6 +76,7 @@ function createApp() {
   app.use('/api/auth', captureMount, authRoutes);
   app.use('/api/leads', captureMount, requireAuth, leadRoutes);
   app.use('/api', captureMount, requireAuth, directoryRoutes);
+  app.use('/api', captureMount, requireAuth, messageRoutes);
 
   app.use(notFoundHandler);
   app.use(errorHandler);

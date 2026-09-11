@@ -43,13 +43,19 @@ module.exports = (sequelize) => {
       // A27: a human always asks for the suggestion — it is never generated on inbound.
       requested_by: { type: DataTypes.UUID, allowNull: false },
       decided_by: { type: DataTypes.UUID, allowNull: true },
-      decided_at: { type: DataTypes.DATE, allowNull: true },
+      decided_at: { type: DataTypes.DATE(3), allowNull: true },
       // The lead as it stood when this suggestion was generated. Complements
       // context_snapshot, which records what the model was actually shown.
       lead_data_json: { type: DataTypes.JSON, allowNull: true },
       // Filled by lib/authorship.js from the acting user. Null means the system acted.
       created_by: { type: DataTypes.UUID, allowNull: true },
       updated_by: { type: DataTypes.UUID, allowNull: true },
+      // DATE(3), and declared rather than left to Sequelize. Its implicit timestamps use
+      // DataTypes.DATE with no precision, which formats values without fractional
+      // seconds — so a DATETIME(3) column silently receives .000 and rows written in the
+      // same second cannot be ordered.
+      createdAt: { type: DataTypes.DATE(3), allowNull: false, field: 'created_at' },
+      updatedAt: { type: DataTypes.DATE(3), allowNull: false, field: 'updated_at' },
     },
     { sequelize, modelName: 'AiSuggestion', tableName: 'ai_suggestions' },
   );

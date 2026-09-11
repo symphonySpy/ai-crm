@@ -14,14 +14,14 @@ MySQL 8.0 · charset `utf8mb4` · collation `utf8mb4_unicode_ci` · เวลา
 |---|---|---:|---:|
 | `users` | ผู้ใช้งานระบบ คือพนักงานขายและผู้จัดการ ไม่ใช่ลูกค้า | 10 | 10 |
 | `companies` | บริษัทลูกค้า ใช้จัดกลุ่ม contact และ lead | 400 | 8 |
-| `contacts` | บุคคลที่ติดต่อ คือลูกค้าหรือผู้มุ่งหวังตัวจริง | 2,000 | 13 |
-| `leads` | โอกาสทางการขาย เป็นออบเจ็กต์แกนกลางของทั้งระบบ | 300 | 17 |
-| `activities` | บันทึกเหตุการณ์ทั้งหมดของ lead คือ audit trail ระดับธุรกิจ | 1,312 | 13 |
-| `messages` | ข้อความสนทนากับลูกค้าทั้งขาเข้าและขาออก | 392 | 19 |
+| `contacts` | บุคคลที่ติดต่อ คือลูกค้าหรือผู้มุ่งหวังตัวจริง | 2,002 | 13 |
+| `leads` | โอกาสทางการขาย เป็นออบเจ็กต์แกนกลางของทั้งระบบ | 302 | 17 |
+| `activities` | บันทึกเหตุการณ์ทั้งหมดของ lead คือ audit trail ระดับธุรกิจ | 1,318 | 13 |
+| `messages` | ข้อความสนทนากับลูกค้าทั้งขาเข้าและขาออก | 396 | 19 |
 | `ai_suggestions` | ผลลัพธ์จาก AI copilot ที่ยังไม่ถือเป็นการกระทำจริง | 76 | 17 |
-| `line_webhook_events` | บันทึกดิบของทุก event ที่ LINE ส่งเข้ามา | 238 | 14 |
-| `tbl_audit_history` | ประวัติการแก้ไขและการปิดใช้งานของทุกตารางที่ตรวจสอบ 1 การแก้ = 1 แถว | 4 | 9 |
-| `rest_log` | บันทึกทุกการเรียก API ทั้งขาเข้าและขาออก ใช้ตรวจว่าหน้าจอเรียกเส้นไหนและได้อะไรกลับ | 10 | 16 |
+| `line_webhook_events` | บันทึกดิบของทุก event ที่ LINE ส่งเข้ามา | 241 | 14 |
+| `tbl_audit_history` | ประวัติการแก้ไขและการปิดใช้งานของทุกตารางที่ตรวจสอบ 1 การแก้ = 1 แถว | 12 | 9 |
+| `rest_log` | บันทึกทุกการเรียก API ทั้งขาเข้าและขาออก ใช้ตรวจว่าหน้าจอเรียกเส้นไหนและได้อะไรกลับ | 27 | 16 |
 
 ---
 
@@ -181,8 +181,8 @@ MySQL 8.0 · charset `utf8mb4` · collation `utf8mb4_unicode_ci` · เวลา
 | `from_stage` | enum: `New` · `Qualified` · `Proposal` · `Won` · `Lost` | ✓ |  |  | stage ต้นทาง บังคับเมื่อ `type = stage_changed` · เก็บเป็นค่าไม่ใช่ FK (A17) |
 | `to_stage` | enum: `New` · `Qualified` · `Proposal` · `Won` · `Lost` | ✓ |  |  | stage ปลายทาง บังคับเมื่อ `type = stage_changed` |
 | `note` | text | ✓ |  |  | บันทึกข้อความของพนักงานขาย |
-| `occurred_at` | datetime | — |  |  | เวลาที่เหตุการณ์เกิดขึ้นจริง (UTC) ใช้เรียง timeline |
-| `created_at` | datetime | — |  |  | เวลาที่บันทึกลงฐานข้อมูล (UTC) ไม่มี `updated_at` เพราะตารางนี้เขียนอย่างเดียว |
+| `occurred_at` | datetime(3) | — |  |  | เวลาที่เหตุการณ์เกิดขึ้นจริง (UTC) ใช้เรียง timeline |
+| `created_at` | datetime(3) | — |  |  | เวลาที่บันทึกลงฐานข้อมูล (UTC) ไม่มี `updated_at` เพราะตารางนี้เขียนอย่างเดียว |
 | `lead_data_json` | json | ✓ |  |  | lead ณ เวลาที่เหตุการณ์เกิด · บันทึกครั้งเดียวตอนสร้าง ไม่เปลี่ยนอีก |
 | `actor_data_json` | json | ✓ |  |  | ผู้กระทำ ณ เวลานั้น · ว่างเมื่อระบบเป็นผู้กระทำ |
 | `created_by` | char(36) (UUID) | ✓ |  | FK → `users.id` (del: RESTRICT) | ผู้สร้างเรคคอร์ด · **ว่าง = ระบบเป็นผู้ทำ** เติมอัตโนมัติจาก `actorId` (A12) |
@@ -226,9 +226,9 @@ MySQL 8.0 · charset `utf8mb4` · collation `utf8mb4_unicode_ci` · เวลา
 | `attempt_count` | tinyint unsigned | — | `0` |  | จำนวนครั้งที่พยายามส่ง สูงสุด 3 (A35) |
 | `error_detail` | text | ✓ |  |  | สาเหตุที่ส่งไม่สำเร็จ เก็บไว้เพื่อให้ตรวจสอบได้ |
 | `approved_by` | char(36) (UUID) | ✓ |  | FK → `users.id` (del: RESTRICT) | ผู้อนุมัติให้ส่ง · **บังคับสำหรับขาออก** ด้วย CHECK constraint (A34) |
-| `sent_at` | datetime | ✓ |  |  | เวลาที่ส่งสำเร็จ (UTC) |
-| `created_at` | datetime | — |  |  | เวลาที่สร้างเรคคอร์ด (UTC) |
-| `updated_at` | datetime | — |  |  | เวลาที่แก้ไขล่าสุด (UTC) เปลี่ยนเมื่อสถานะการส่งเปลี่ยน |
+| `sent_at` | datetime(3) | ✓ |  |  | เวลาที่ส่งสำเร็จ (UTC) |
+| `created_at` | datetime(3) | — |  |  | เวลาที่สร้างเรคคอร์ด (UTC) |
+| `updated_at` | datetime(3) | — |  |  | เวลาที่แก้ไขล่าสุด (UTC) เปลี่ยนเมื่อสถานะการส่งเปลี่ยน |
 | `lead_data_json` | json | ✓ |  |  | lead ณ เวลาที่บันทึกข้อความ · บันทึกครั้งเดียวตอนสร้าง |
 | `contact_data_json` | json | ✓ |  |  | ผู้ติดต่อ ณ เวลาที่บันทึกข้อความ |
 | `created_by` | char(36) (UUID) | ✓ |  | FK → `users.id` (del: RESTRICT) | ผู้สร้างเรคคอร์ด · **ว่าง = ระบบเป็นผู้ทำ** เติมอัตโนมัติจาก `actorId` (A12) |
@@ -278,9 +278,9 @@ MySQL 8.0 · charset `utf8mb4` · collation `utf8mb4_unicode_ci` · เวลา
 | `status` | enum: `proposed` · `approved` · `rejected` | — | `proposed` |  | `proposed` ยังไม่มีใครตัดสิน · `approved` หรือ `rejected` ผ่านมือคนแล้ว (A22) |
 | `requested_by` | char(36) (UUID) | — |  | FK → `users.id` (del: RESTRICT) | ผู้กดขอคำแนะนำ บังคับ เพราะระบบไม่สร้างเองอัตโนมัติ (A27) |
 | `decided_by` | char(36) (UUID) | ✓ |  | FK → `users.id` (del: RESTRICT) | ผู้อนุมัติหรือปฏิเสธ · บังคับเมื่อ `status` ไม่ใช่ `proposed` |
-| `decided_at` | datetime | ✓ |  |  | เวลาที่ตัดสินใจ (UTC) · บังคับคู่กับ `decided_by` |
-| `created_at` | datetime | — |  |  | เวลาที่สร้างคำแนะนำ (UTC) |
-| `updated_at` | datetime | — |  |  | เวลาที่แก้ไขล่าสุด (UTC) |
+| `decided_at` | datetime(3) | ✓ |  |  | เวลาที่ตัดสินใจ (UTC) · บังคับคู่กับ `decided_by` |
+| `created_at` | datetime(3) | — |  |  | เวลาที่สร้างคำแนะนำ (UTC) |
+| `updated_at` | datetime(3) | — |  |  | เวลาที่แก้ไขล่าสุด (UTC) |
 | `lead_data_json` | json | ✓ |  |  | lead ณ เวลาที่สร้างคำแนะนำ · เสริมกับ `context_snapshot` ที่เก็บสิ่งที่โมเดลเห็นจริง |
 | `created_by` | char(36) (UUID) | ✓ |  | FK → `users.id` (del: RESTRICT) | ผู้สร้างเรคคอร์ด · **ว่าง = ระบบเป็นผู้ทำ** เติมอัตโนมัติจาก `actorId` (A12) |
 | `updated_by` | char(36) (UUID) | ✓ |  | FK → `users.id` (del: RESTRICT) | ผู้แก้ไขล่าสุด · เปลี่ยนเฉพาะเมื่อมีข้อมูลอื่นเปลี่ยนจริง |

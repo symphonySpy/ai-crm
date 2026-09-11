@@ -17,7 +17,8 @@
     "docs:datadict": "node scripts/generate-data-dictionary.js",
     "docs:erd": "node scripts/generate-erd.js",
     "docs": "npm run docs:datadict && npm run docs:erd",
-    "logs:prune": "node scripts/prune-rest-log.js"
+    "logs:prune": "node scripts/prune-rest-log.js",
+    "messages:retry": "node scripts/retry-pending-messages.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

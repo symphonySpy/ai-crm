@@ -40,13 +40,19 @@ module.exports = (sequelize) => {
       attempt_count: { type: DataTypes.TINYINT.UNSIGNED, allowNull: false, defaultValue: 0 },
       error_detail: { type: DataTypes.TEXT, allowNull: true },
       approved_by: { type: DataTypes.UUID, allowNull: true },
-      sent_at: { type: DataTypes.DATE, allowNull: true },
+      sent_at: { type: DataTypes.DATE(3), allowNull: true },
       // The lead and contact as they stood when this message was recorded.
       lead_data_json: { type: DataTypes.JSON, allowNull: true },
       contact_data_json: { type: DataTypes.JSON, allowNull: true },
       // Filled by lib/authorship.js from the acting user. Null means the system acted.
       created_by: { type: DataTypes.UUID, allowNull: true },
       updated_by: { type: DataTypes.UUID, allowNull: true },
+      // DATE(3), and declared rather than left to Sequelize. Its implicit timestamps use
+      // DataTypes.DATE with no precision, which formats values without fractional
+      // seconds — so a DATETIME(3) column silently receives .000 and rows written in the
+      // same second cannot be ordered.
+      createdAt: { type: DataTypes.DATE(3), allowNull: false, field: 'created_at' },
+      updatedAt: { type: DataTypes.DATE(3), allowNull: false, field: 'updated_at' },
     },
     { sequelize, modelName: 'Message', tableName: 'messages' },
   );

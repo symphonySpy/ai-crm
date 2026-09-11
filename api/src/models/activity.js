@@ -25,11 +25,16 @@ module.exports = (sequelize) => {
       from_stage: { type: DataTypes.ENUM(...LEAD_STAGES), allowNull: true },
       to_stage: { type: DataTypes.ENUM(...LEAD_STAGES), allowNull: true },
       note: { type: DataTypes.TEXT, allowNull: true },
-      occurred_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW },
+      occurred_at: { type: DataTypes.DATE(3), allowNull: false, defaultValue: DataTypes.NOW },
       // The lead and the actor as they stood when this event happened. Captured once at
       // creation, because this row describes a moment that never changes.
       lead_data_json: { type: DataTypes.JSON, allowNull: true },
       actor_data_json: { type: DataTypes.JSON, allowNull: true },
+      // DATE(3), and declared rather than left to Sequelize. Its implicit timestamps use
+      // DataTypes.DATE with no precision, which formats values without fractional
+      // seconds — so a DATETIME(3) column silently receives .000 and rows written in the
+      // same second cannot be ordered.
+      createdAt: { type: DataTypes.DATE(3), allowNull: false, field: 'created_at' },
       // Filled by lib/authorship.js from the acting user. Null means the system acted.
       created_by: { type: DataTypes.UUID, allowNull: true },
       updated_by: { type: DataTypes.UUID, allowNull: true },
