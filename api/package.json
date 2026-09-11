@@ -18,7 +18,9 @@
     "docs:erd": "node scripts/generate-erd.js",
     "docs": "npm run docs:datadict && npm run docs:erd",
     "logs:prune": "node scripts/prune-rest-log.js",
-    "messages:retry": "node scripts/retry-pending-messages.js"
+    "messages:retry": "node scripts/retry-pending-messages.js",
+    "deploy:migrate": "sequelize-cli db:migrate",
+    "deploy:seed": "sequelize-cli db:seed:all"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
@@ -29,10 +31,10 @@
     "mysql2": "^3.11.0",
     "pino": "^9.3.2",
     "sequelize": "^6.37.3",
+    "sequelize-cli": "^6.6.2",
     "zod": "^3.23.8"
   },
   "devDependencies": {
-    "sequelize-cli": "^6.6.2",
     "supertest": "^7.0.0",
     "vitest": "^2.0.5"
   }

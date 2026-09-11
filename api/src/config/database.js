@@ -25,7 +25,29 @@ const base = {
   logging: false,
 };
 
-const fromEnv = () => ({
+/**
+ * Managed platforms hand out one connection URL rather than five separate variables —
+ * Railway calls it MYSQL_URL, most others DATABASE_URL. Reading the URL when it is
+ * present means the deployment is configured by referencing the database service, with
+ * no credentials copied by hand into a second place to drift out of date.
+ *
+ * The discrete variables stay supported because that is what a local .env uses.
+ */
+const connectionUrl = () => process.env.MYSQL_URL || process.env.DATABASE_URL || null;
+
+const fromUrl = (url) => {
+  const parsed = new URL(url);
+  return {
+    ...base,
+    username: decodeURIComponent(parsed.username),
+    password: decodeURIComponent(parsed.password),
+    database: parsed.pathname.replace(/^\//, ''),
+    host: parsed.hostname,
+    port: Number(parsed.port || 3306),
+  };
+};
+
+const fromParts = () => ({
   ...base,
   username: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
@@ -34,17 +56,27 @@ const fromEnv = () => ({
   port: Number(process.env.DB_PORT || 3306),
 });
 
+const resolve = () => {
+  const url = connectionUrl();
+  return url ? fromUrl(url) : fromParts();
+};
+
 module.exports = {
-  development: fromEnv(),
+  development: resolve(),
   test: {
-    ...fromEnv(),
-    database: process.env.DB_NAME_TEST || `${process.env.DB_NAME}_test`,
+    ...resolve(),
+    database: process.env.DB_NAME_TEST || `${process.env.DB_NAME || 'ai_crm'}_test`,
   },
-  production: {
-    ...fromEnv(),
-    dialectOptions: {
-      ...base.dialectOptions,
-      ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: true } : undefined,
-    },
-  },
+  production: (() => {
+    const config = resolve();
+    return {
+      ...config,
+      dialectOptions: {
+        ...config.dialectOptions,
+        // Managed MySQL is usually reached over the platform's private network, where
+        // TLS is not in play; DB_SSL is here for the deployments where it is.
+        ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: true } : undefined,
+      },
+    };
+  })(),
 };
