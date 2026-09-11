@@ -8,6 +8,11 @@ const base = {
     // A10: the connection speaks UTC. Presentation converts to Asia/Bangkok.
     timezone: 'Z',
     supportBigNumbers: true,
+    // Stated explicitly rather than left to the driver's default. Thai content is the
+    // normal case here, and a connection that negotiates a narrower charset silently
+    // replaces every unrepresentable character with '?' — corruption that survives into
+    // the database and cannot be recovered afterwards.
+    charset: 'utf8mb4',
   },
   timezone: '+00:00',
   define: {

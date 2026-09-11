@@ -14,12 +14,16 @@
     "db:seed": "sequelize-cli db:seed:all",
     "db:reset": "sequelize-cli db:migrate:undo:all && sequelize-cli db:migrate && sequelize-cli db:seed:all",
     "test": "vitest run",
-    "docs:datadict": "node scripts/generate-data-dictionary.js"
+    "docs:datadict": "node scripts/generate-data-dictionary.js",
+    "docs:erd": "node scripts/generate-erd.js",
+    "docs": "npm run docs:datadict && npm run docs:erd"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
+    "cookie-parser": "^1.4.7",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
+    "express-rate-limit": "^8.7.0",
     "mysql2": "^3.11.0",
     "pino": "^9.3.2",
     "sequelize": "^6.37.3",
