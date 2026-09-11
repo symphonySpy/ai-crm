@@ -14,6 +14,7 @@ const TABLE_ORDER = [
   'messages',
   'ai_suggestions',
   'line_webhook_events',
+  'field_change_log',
 ];
 
 const TABLES = {
@@ -53,6 +54,13 @@ const TABLES = {
     note:
       'เป็นเส้นแบ่งหลักของระบบ (A22) AI เขียนได้เฉพาะตารางนี้ ' +
       'จะแก้ lead หรือส่งข้อความออกได้ต่อเมื่อมีคนเปลี่ยน `status` เท่านั้น',
+  },
+  field_change_log: {
+    purpose: 'ประวัติการเปลี่ยนแปลงของฟิลด์ที่เลือกไว้ ใช้ตอบคำถามว่าค่า ณ เวลานั้นคืออะไร',
+    note:
+      'ค่าปัจจุบันอ่านจากตารางต้นทางเสมอ ตารางนี้เก็บเฉพาะ**การเปลี่ยนแปลง** ไม่ใช่สำเนาทั้งก้อน (A16) ' +
+      'การอ่านค่าย้อนหลังคือการไล่ย้อนรายการที่เกิดหลังเวลาที่สนใจ ' +
+      'รายการฟิลด์ที่บันทึกกำหนดไว้ใน `constants/tracked-fields.js`',
   },
   line_webhook_events: {
     purpose: 'บันทึกดิบของทุก event ที่ LINE ส่งเข้ามา',
@@ -182,9 +190,21 @@ const COLUMNS = {
     'เวลาที่ประมวลผลเสร็จ (UTC) บังคับเมื่อ `process_status = processed`',
   'line_webhook_events.created_at': 'เวลาที่สร้างเรคคอร์ด (UTC)',
   'line_webhook_events.updated_at': 'เวลาที่แก้ไขล่าสุด (UTC)',
+
+  'field_change_log.id': 'รหัสรายการ เรียงตามลำดับการเขียน',
+  'field_change_log.entity_type': 'ชนิดของเรคคอร์ดที่เปลี่ยน · ไม่ใช้ FK เพราะชี้ไปได้หลายตาราง',
+  'field_change_log.entity_id': 'รหัสของเรคคอร์ดที่เปลี่ยน',
+  'field_change_log.field': 'ชื่อคอลัมน์ที่เปลี่ยน',
+  'field_change_log.old_value': 'ค่าก่อนเปลี่ยน เก็บเป็นข้อความทุกชนิดข้อมูล',
+  'field_change_log.new_value': 'ค่าหลังเปลี่ยน',
+  'field_change_log.changed_by': 'ผู้แก้ไข · **ว่าง = ระบบเป็นผู้แก้** ใช้หลักเดียวกับ `activities.actor_id`',
+  'field_change_log.changed_at': 'เวลาที่เปลี่ยน (UTC) เป็นแกนที่ใช้ไล่ย้อนค่า',
+  'field_change_log.created_at': 'เวลาที่บันทึกลงฐานข้อมูล (UTC) ไม่มี `updated_at` เพราะเขียนอย่างเดียว',
 };
 
 const CHECKS = {
+  chk_field_change_actually_changed:
+    'ห้ามบันทึกรายการที่ค่าเดิมกับค่าใหม่เท่ากัน รวมถึงกรณีที่เป็น null ทั้งคู่ — ประวัติที่ไม่มีอะไรเปลี่ยนคือขยะที่ทำให้อ่านยาก',
   chk_leads_triage_requires_no_owner:
     'lead ที่ไม่มีเจ้าของต้องติดธง triage และ lead ที่มีเจ้าของต้องไม่ติดธง — กันไม่ให้มีงานที่ไม่มีใครเห็น',
   chk_activities_stage_change_has_stages:

@@ -20,6 +20,7 @@ MySQL 8.0 · charset `utf8mb4` · collation `utf8mb4_unicode_ci` · เวลา
 | `messages` | ข้อความสนทนากับลูกค้าทั้งขาเข้าและขาออก | 392 | 15 |
 | `ai_suggestions` | ผลลัพธ์จาก AI copilot ที่ยังไม่ถือเป็นการกระทำจริง | 76 | 14 |
 | `line_webhook_events` | บันทึกดิบของทุก event ที่ LINE ส่งเข้ามา | 238 | 12 |
+| `field_change_log` | ประวัติการเปลี่ยนแปลงของฟิลด์ที่เลือกไว้ ใช้ตอบคำถามว่าค่า ณ เวลานั้นคืออะไร | 2 | 9 |
 
 ---
 
@@ -312,6 +313,41 @@ MySQL 8.0 · charset `utf8mb4` · collation `utf8mb4_unicode_ci` · เวลา
 |---|---|:---:|
 | `idx_line_events_message` | `message_id` | — |
 | `idx_line_events_status_received` | `process_status`, `received_at` | — |
+
+---
+
+## `field_change_log`
+
+ประวัติการเปลี่ยนแปลงของฟิลด์ที่เลือกไว้ ใช้ตอบคำถามว่าค่า ณ เวลานั้นคืออะไร
+
+> ค่าปัจจุบันอ่านจากตารางต้นทางเสมอ ตารางนี้เก็บเฉพาะ**การเปลี่ยนแปลง** ไม่ใช่สำเนาทั้งก้อน (A16) การอ่านค่าย้อนหลังคือการไล่ย้อนรายการที่เกิดหลังเวลาที่สนใจ รายการฟิลด์ที่บันทึกกำหนดไว้ใน `constants/tracked-fields.js`
+
+| คอลัมน์ | ชนิด | ว่างได้ | ค่าเริ่มต้น | คีย์ | คำอธิบาย |
+|---|---|:---:|---|---|---|
+| `id` | bigint unsigned | — |  | PK | รหัสรายการ เรียงตามลำดับการเขียน |
+| `entity_type` | enum: `company` · `contact` · `lead` | — |  |  | ชนิดของเรคคอร์ดที่เปลี่ยน · ไม่ใช้ FK เพราะชี้ไปได้หลายตาราง |
+| `entity_id` | char(36) (UUID) | — |  |  | รหัสของเรคคอร์ดที่เปลี่ยน |
+| `field` | varchar(64) | — |  |  | ชื่อคอลัมน์ที่เปลี่ยน |
+| `old_value` | text | ✓ |  |  | ค่าก่อนเปลี่ยน เก็บเป็นข้อความทุกชนิดข้อมูล |
+| `new_value` | text | ✓ |  |  | ค่าหลังเปลี่ยน |
+| `changed_by` | char(36) (UUID) | ✓ |  | FK → `users.id` (del: RESTRICT) | ผู้แก้ไข · **ว่าง = ระบบเป็นผู้แก้** ใช้หลักเดียวกับ `activities.actor_id` |
+| `changed_at` | datetime | — |  |  | เวลาที่เปลี่ยน (UTC) เป็นแกนที่ใช้ไล่ย้อนค่า |
+| `created_at` | datetime | — |  |  | เวลาที่บันทึกลงฐานข้อมูล (UTC) ไม่มี `updated_at` เพราะเขียนอย่างเดียว |
+
+**CHECK constraints**
+
+- `chk_field_change_actually_changed` — ห้ามบันทึกรายการที่ค่าเดิมกับค่าใหม่เท่ากัน รวมถึงกรณีที่เป็น null ทั้งคู่ — ประวัติที่ไม่มีอะไรเปลี่ยนคือขยะที่ทำให้อ่านยาก
+  ```sql
+  (not((`old_value` <=> `new_value`)))
+  ```
+
+**ดัชนี**
+
+| ชื่อ | คอลัมน์ | unique |
+|---|---|:---:|
+| `changed_by` | `changed_by` | — |
+| `idx_field_change_entity` | `entity_type`, `entity_id`, `changed_at` | — |
+| `idx_field_change_field` | `entity_type`, `field`, `changed_at` | — |
 
 ---
 
