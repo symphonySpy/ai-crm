@@ -1,0 +1,7 @@
+# Normalise line endings in the repository so a Windows checkout and a Linux CI run
+# see the same bytes. Without this, every file committed from Windows lands with CRLF
+# and later diffs show whole-file changes that hide the real edit.
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.pdf binary
