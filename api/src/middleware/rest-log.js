@@ -48,7 +48,11 @@ function restLog(req, res, next) {
   if (process.env.REST_LOG_ENABLED === 'false') return next();
   if (SKIP_PATHS.has(req.path)) return next();
 
+  // Two clocks, deliberately. hrtime is monotonic and gives a duration that cannot be
+  // distorted by an NTP correction mid-request; Date is wall clock and is what a person
+  // reads when they ask what was happening at 09:15.
   const startedAt = process.hrtime.bigint();
+  const requestDate = new Date();
 
   // The response body is only available by intercepting the send. Capturing the value
   // rather than re-serialising it later keeps this honest: what gets stored is exactly
@@ -62,6 +66,9 @@ function restLog(req, res, next) {
 
   res.on('finish', () => {
     const durationMs = Math.round(Number(process.hrtime.bigint() - startedAt) / 1e6);
+    // Derived from the monotonic duration rather than read from the clock again, so the
+    // pair can never disagree with duration_ms — and can never land before the request.
+    const responseDate = new Date(requestDate.getTime() + durationMs);
 
     // Fire and forget, deliberately: the response has already been sent, so there is
     // nobody left to tell about a failure except the log.
@@ -77,6 +84,8 @@ function restLog(req, res, next) {
         : null,
       status_code: res.statusCode,
       duration_ms: durationMs,
+      request_date: requestDate,
+      response_date: responseDate,
       query_json: Object.keys(req.query || {}).length ? redactForStorage(req.query) : null,
       request_body:
         req.body && Object.keys(req.body).length ? redactForStorage(req.body) : null,

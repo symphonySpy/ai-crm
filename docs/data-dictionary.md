@@ -21,7 +21,7 @@ MySQL 8.0 · charset `utf8mb4` · collation `utf8mb4_unicode_ci` · เวลา
 | `ai_suggestions` | ผลลัพธ์จาก AI copilot ที่ยังไม่ถือเป็นการกระทำจริง | 76 | 17 |
 | `line_webhook_events` | บันทึกดิบของทุก event ที่ LINE ส่งเข้ามา | 238 | 14 |
 | `tbl_audit_history` | ประวัติการแก้ไขและการปิดใช้งานของทุกตารางที่ตรวจสอบ 1 การแก้ = 1 แถว | 4 | 9 |
-| `rest_log` | บันทึกทุกการเรียก API ทั้งขาเข้าและขาออก ใช้ตรวจว่าหน้าจอเรียกเส้นไหนและได้อะไรกลับ | 5 | 14 |
+| `rest_log` | บันทึกทุกการเรียก API ทั้งขาเข้าและขาออก ใช้ตรวจว่าหน้าจอเรียกเส้นไหนและได้อะไรกลับ | 10 | 16 |
 
 ---
 
@@ -395,14 +395,23 @@ MySQL 8.0 · charset `utf8mb4` · collation `utf8mb4_unicode_ci` · เวลา
 | `path` | varchar(512) | — |  |  | URL ที่ถูกเรียกจริงรวม query string |
 | `route` | varchar(255) | ✓ |  |  | route pattern ที่แมตช์ เช่น `/api/leads/:id` · เก็บคู่กับ `path` เพื่อให้จัดกลุ่มตาม endpoint ได้โดยไม่ต้องแยก id ออกจาก path เอง · ว่างเมื่อไม่มี route ใดรับ |
 | `status_code` | smallint unsigned | — |  |  | HTTP status ที่ตอบกลับ |
-| `duration_ms` | int unsigned | — |  |  | เวลาที่ใช้ทั้งคำขอ หน่วยมิลลิวินาที |
+| `duration_ms` | int unsigned | — |  |  | เวลาที่ใช้ทั้งคำขอ หน่วยมิลลิวินาที · วัดด้วยนาฬิกาแบบ monotonic จึงไม่เพี้ยนหากเวลาระบบถูกปรับกลางคัน |
 | `query_json` | json | ✓ |  |  | query string หลังผ่านการตรวจและปิดบังค่าที่อ่อนไหว |
 | `request_body` | json | ✓ |  |  | เนื้อหาคำขอหลังปิดบัง · payload ที่ใหญ่เกินกำหนดถูกแทนด้วย `{_truncated, _bytes}` เพื่อให้ค่าที่เก็บยังเป็น JSON ที่ถูกต้องเสมอ |
 | `response_body` | json | ✓ |  |  | เนื้อหาที่ตอบกลับ ใช้กติกาเดียวกับ `request_body` |
 | `user_id` | char(36) (UUID) | ✓ |  | FK → `users.id` (del: RESTRICT) | ผู้เรียก · ว่างเมื่อยังไม่ได้ล็อกอิน เช่น login ที่ล้มเหลว |
 | `ip` | varchar(45) | ✓ |  |  | IP ต้นทาง · เก็บที่นี่ได้เพราะเป็นตารางที่มีอายุการเก็บกำกับ ไม่ใช่ตารางธุรกิจ (A15) |
 | `user_agent` | varchar(255) | ✓ |  |  | user agent ของ client ตัดที่ 255 ตัวอักษร |
-| `created_at` | datetime(3) | — |  |  | เวลาที่บันทึก (UTC) ความละเอียดมิลลิวินาที ไม่มี `updated_at` เพราะเขียนอย่างเดียว |
+| `created_at` | datetime(3) | — |  |  | เวลาที่แถวถูกเขียนลงฐานข้อมูล (UTC) · **ไม่ใช่ค่าเดียวกับ `response_date`** เพราะเขียนหลังส่ง response แล้ว ส่วนต่างของสองค่านี้คือความหน่วงของตัวระบบบันทึกเอง ซึ่งเป็นสิ่งแรกที่ควรดูเมื่อ log เริ่มหาย · ไม่มี `updated_at` เพราะเขียนอย่างเดียว |
+| `request_date` | datetime(3) | — |  |  | เวลาที่คำขอเข้ามา (UTC) ความละเอียดมิลลิวินาที · ใช้ตอบว่า “ตอนนั้นเกิดอะไรขึ้น” |
+| `response_date` | datetime(3) | — |  |  | เวลาที่ตอบกลับเสร็จ (UTC) · คำนวณจาก `request_date` บวก `duration_ms` จึงไม่มีทางขัดแย้งกันเอง และมี CHECK บังคับว่าต้องไม่มาก่อน `request_date` |
+
+**CHECK constraints**
+
+- `chk_rest_log_dates_ordered` — 
+  ```sql
+  (`response_date` >= `request_date`)
+  ```
 
 **ดัชนี**
 
@@ -410,6 +419,7 @@ MySQL 8.0 · charset `utf8mb4` · collation `utf8mb4_unicode_ci` · เวลา
 |---|---|:---:|
 | `idx_rest_log_created` | `created_at` | — |
 | `idx_rest_log_request` | `request_id` | — |
+| `idx_rest_log_request_date` | `request_date` | — |
 | `idx_rest_log_route` | `route`, `created_at` | — |
 | `idx_rest_log_status` | `status_code`, `created_at` | — |
 | `idx_rest_log_user` | `user_id`, `created_at` | — |
