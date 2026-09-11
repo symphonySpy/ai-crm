@@ -131,7 +131,16 @@ erDiagram
   }
   REST_LOG {
     bigint id PK
+    string request_id
+    string method
+    string path
+    string route
+    smallint status_code
+    int duration_ms
     uuid user_id FK
+    string ip
+    datetime request_date
+    datetime response_date
   }
 ```
 

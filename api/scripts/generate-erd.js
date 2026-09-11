@@ -24,10 +24,15 @@ const OUT = path.resolve(__dirname, '..', '..', 'docs', 'erd.md');
 // Columns worth showing beyond keys and enums: the ones a reader needs to understand
 // what the table is for.
 const NOTABLE = new Set([
+  // Business tables
   'name', 'email', 'title', 'value_thb', 'body', 'note', 'industry', 'phone',
   'line_user_id', 'line_message_id', 'webhook_event_id', 'is_active', 'needs_triage',
   'degraded', 'attempt_count', 'occurred_at', 'sent_at', 'received_at', 'last_contact_at',
   'entity_id', 'old_json', 'new_json', 'payload', 'context_snapshot', 'raw_payload',
+  // Operational tables. Without these, rest_log renders as a box holding nothing but
+  // its primary key and a foreign key — technically accurate and useless to a reader.
+  'method', 'path', 'route', 'status_code', 'duration_ms', 'request_date', 'response_date',
+  'request_id', 'ip',
 ]);
 
 // Never shown: bookkeeping that is identical everywhere, and the point-in-time copies,
@@ -37,7 +42,10 @@ const isNoise = (col) =>
   col.endsWith('_data_json') ||
   col.endsWith('_master_json');
 
-const mermaidType = (type) => {
+const mermaidType = (rawType) => {
+  // "smallint(5) unsigned" is a storage detail, not something a reader of the diagram
+  // needs; it also renders as smallint_unsigned once the punctuation is stripped.
+  const type = rawType.replace(/\s+unsigned$/, '');
   if (type.startsWith('enum(')) return 'enum';
   if (type === 'char(36)') return 'uuid';
   if (type.startsWith('varchar')) return 'string';
