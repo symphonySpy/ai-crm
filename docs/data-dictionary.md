@@ -12,15 +12,15 @@ MySQL 8.0 · charset `utf8mb4` · collation `utf8mb4_unicode_ci` · เวลา
 
 | ตาราง | หน้าที่ | จำนวนแถว (ข้อมูลสาธิต) | คอลัมน์ |
 |---|---|---:|---:|
-| `users` | ผู้ใช้งานระบบ คือพนักงานขายและผู้จัดการ ไม่ใช่ลูกค้า | 10 | 8 |
+| `users` | ผู้ใช้งานระบบ คือพนักงานขายและผู้จัดการ ไม่ใช่ลูกค้า | 10 | 10 |
 | `companies` | บริษัทลูกค้า ใช้จัดกลุ่ม contact และ lead | 400 | 8 |
 | `contacts` | บุคคลที่ติดต่อ คือลูกค้าหรือผู้มุ่งหวังตัวจริง | 2,000 | 13 |
 | `leads` | โอกาสทางการขาย เป็นออบเจ็กต์แกนกลางของทั้งระบบ | 300 | 17 |
-| `activities` | บันทึกเหตุการณ์ทั้งหมดของ lead คือ audit trail ระดับธุรกิจ | 1,306 | 11 |
-| `messages` | ข้อความสนทนากับลูกค้าทั้งขาเข้าและขาออก | 392 | 17 |
-| `ai_suggestions` | ผลลัพธ์จาก AI copilot ที่ยังไม่ถือเป็นการกระทำจริง | 76 | 15 |
-| `line_webhook_events` | บันทึกดิบของทุก event ที่ LINE ส่งเข้ามา | 238 | 12 |
-| `tbl_audit_history` | ประวัติการแก้ไขและการปิดใช้งานของทุกตารางที่ตรวจสอบ 1 การแก้ = 1 แถว | 6 | 9 |
+| `activities` | บันทึกเหตุการณ์ทั้งหมดของ lead คือ audit trail ระดับธุรกิจ | 1,306 | 13 |
+| `messages` | ข้อความสนทนากับลูกค้าทั้งขาเข้าและขาออก | 392 | 19 |
+| `ai_suggestions` | ผลลัพธ์จาก AI copilot ที่ยังไม่ถือเป็นการกระทำจริง | 76 | 17 |
+| `line_webhook_events` | บันทึกดิบของทุก event ที่ LINE ส่งเข้ามา | 238 | 14 |
+| `tbl_audit_history` | ประวัติการแก้ไขและการปิดใช้งานของทุกตารางที่ตรวจสอบ 1 การแก้ = 1 แถว | 1 | 9 |
 
 ---
 
@@ -40,6 +40,8 @@ MySQL 8.0 · charset `utf8mb4` · collation `utf8mb4_unicode_ci` · เวลา
 | `is_active` | tinyint(1) | — | `1` |  | พนักงานที่ยังทำงานอยู่หรือไม่ ใช้แทนการลบ (A14) |
 | `created_at` | datetime | — |  |  | เวลาที่สร้างเรคคอร์ด (UTC) |
 | `updated_at` | datetime | — |  |  | เวลาที่แก้ไขล่าสุด (UTC) |
+| `created_by` | char(36) (UUID) | ✓ |  | FK → `users.id` (del: RESTRICT) | ผู้สร้างเรคคอร์ด · **ว่าง = ระบบเป็นผู้ทำ** เติมอัตโนมัติจาก `actorId` (A12) |
+| `updated_by` | char(36) (UUID) | ✓ |  | FK → `users.id` (del: RESTRICT) | ผู้แก้ไขล่าสุด · เปลี่ยนเฉพาะเมื่อมีข้อมูลอื่นเปลี่ยนจริง |
 
 **ดัชนี**
 
@@ -47,6 +49,8 @@ MySQL 8.0 · charset `utf8mb4` · collation `utf8mb4_unicode_ci` · เวลา
 |---|---|:---:|
 | `email` | `email` | ✓ |
 | `idx_users_is_active` | `is_active` | — |
+| `users_created_by_foreign_idx` | `created_by` | — |
+| `users_updated_by_foreign_idx` | `updated_by` | — |
 
 ---
 
@@ -180,6 +184,8 @@ MySQL 8.0 · charset `utf8mb4` · collation `utf8mb4_unicode_ci` · เวลา
 | `created_at` | datetime | — |  |  | เวลาที่บันทึกลงฐานข้อมูล (UTC) ไม่มี `updated_at` เพราะตารางนี้เขียนอย่างเดียว |
 | `lead_data_json` | json | ✓ |  |  | lead ณ เวลาที่เหตุการณ์เกิด · บันทึกครั้งเดียวตอนสร้าง ไม่เปลี่ยนอีก |
 | `actor_data_json` | json | ✓ |  |  | ผู้กระทำ ณ เวลานั้น · ว่างเมื่อระบบเป็นผู้กระทำ |
+| `created_by` | char(36) (UUID) | ✓ |  | FK → `users.id` (del: RESTRICT) | ผู้สร้างเรคคอร์ด · **ว่าง = ระบบเป็นผู้ทำ** เติมอัตโนมัติจาก `actorId` (A12) |
+| `updated_by` | char(36) (UUID) | ✓ |  | FK → `users.id` (del: RESTRICT) | ผู้แก้ไขล่าสุด · เปลี่ยนเฉพาะเมื่อมีข้อมูลอื่นเปลี่ยนจริง |
 
 **CHECK constraints**
 
@@ -192,6 +198,8 @@ MySQL 8.0 · charset `utf8mb4` · collation `utf8mb4_unicode_ci` · เวลา
 
 | ชื่อ | คอลัมน์ | unique |
 |---|---|:---:|
+| `activities_created_by_foreign_idx` | `created_by` | — |
+| `activities_updated_by_foreign_idx` | `updated_by` | — |
 | `idx_activities_actor` | `actor_id` | — |
 | `idx_activities_lead_occurred` | `lead_id`, `occurred_at` | — |
 
@@ -222,6 +230,8 @@ MySQL 8.0 · charset `utf8mb4` · collation `utf8mb4_unicode_ci` · เวลา
 | `updated_at` | datetime | — |  |  | เวลาที่แก้ไขล่าสุด (UTC) เปลี่ยนเมื่อสถานะการส่งเปลี่ยน |
 | `lead_data_json` | json | ✓ |  |  | lead ณ เวลาที่บันทึกข้อความ · บันทึกครั้งเดียวตอนสร้าง |
 | `contact_data_json` | json | ✓ |  |  | ผู้ติดต่อ ณ เวลาที่บันทึกข้อความ |
+| `created_by` | char(36) (UUID) | ✓ |  | FK → `users.id` (del: RESTRICT) | ผู้สร้างเรคคอร์ด · **ว่าง = ระบบเป็นผู้ทำ** เติมอัตโนมัติจาก `actorId` (A12) |
+| `updated_by` | char(36) (UUID) | ✓ |  | FK → `users.id` (del: RESTRICT) | ผู้แก้ไขล่าสุด · เปลี่ยนเฉพาะเมื่อมีข้อมูลอื่นเปลี่ยนจริง |
 
 **CHECK constraints**
 
@@ -243,6 +253,8 @@ MySQL 8.0 · charset `utf8mb4` · collation `utf8mb4_unicode_ci` · เวลา
 | `idx_messages_lead_created` | `lead_id`, `created_at` | — |
 | `idx_messages_status_created` | `send_status`, `created_at` | — |
 | `line_message_id` | `line_message_id` | ✓ |
+| `messages_created_by_foreign_idx` | `created_by` | — |
+| `messages_updated_by_foreign_idx` | `updated_by` | — |
 
 ---
 
@@ -269,6 +281,8 @@ MySQL 8.0 · charset `utf8mb4` · collation `utf8mb4_unicode_ci` · เวลา
 | `created_at` | datetime | — |  |  | เวลาที่สร้างคำแนะนำ (UTC) |
 | `updated_at` | datetime | — |  |  | เวลาที่แก้ไขล่าสุด (UTC) |
 | `lead_data_json` | json | ✓ |  |  | lead ณ เวลาที่สร้างคำแนะนำ · เสริมกับ `context_snapshot` ที่เก็บสิ่งที่โมเดลเห็นจริง |
+| `created_by` | char(36) (UUID) | ✓ |  | FK → `users.id` (del: RESTRICT) | ผู้สร้างเรคคอร์ด · **ว่าง = ระบบเป็นผู้ทำ** เติมอัตโนมัติจาก `actorId` (A12) |
+| `updated_by` | char(36) (UUID) | ✓ |  | FK → `users.id` (del: RESTRICT) | ผู้แก้ไขล่าสุด · เปลี่ยนเฉพาะเมื่อมีข้อมูลอื่นเปลี่ยนจริง |
 
 **CHECK constraints**
 
@@ -281,6 +295,8 @@ MySQL 8.0 · charset `utf8mb4` · collation `utf8mb4_unicode_ci` · เวลา
 
 | ชื่อ | คอลัมน์ | unique |
 |---|---|:---:|
+| `ai_suggestions_created_by_foreign_idx` | `created_by` | — |
+| `ai_suggestions_updated_by_foreign_idx` | `updated_by` | — |
 | `decided_by` | `decided_by` | — |
 | `idx_ai_suggestions_lead_created` | `lead_id`, `created_at` | — |
 | `idx_ai_suggestions_status` | `status` | — |
@@ -308,6 +324,8 @@ MySQL 8.0 · charset `utf8mb4` · collation `utf8mb4_unicode_ci` · เวลา
 | `processed_at` | datetime | ✓ |  |  | เวลาที่ประมวลผลเสร็จ (UTC) บังคับเมื่อ `process_status = processed` |
 | `created_at` | datetime | — |  |  | เวลาที่สร้างเรคคอร์ด (UTC) |
 | `updated_at` | datetime | — |  |  | เวลาที่แก้ไขล่าสุด (UTC) |
+| `created_by` | char(36) (UUID) | ✓ |  | FK → `users.id` (del: RESTRICT) | ผู้สร้างเรคคอร์ด · **ว่าง = ระบบเป็นผู้ทำ** เติมอัตโนมัติจาก `actorId` (A12) |
+| `updated_by` | char(36) (UUID) | ✓ |  | FK → `users.id` (del: RESTRICT) | ผู้แก้ไขล่าสุด · เปลี่ยนเฉพาะเมื่อมีข้อมูลอื่นเปลี่ยนจริง |
 
 **CHECK constraints**
 
@@ -322,6 +340,8 @@ MySQL 8.0 · charset `utf8mb4` · collation `utf8mb4_unicode_ci` · เวลา
 |---|---|:---:|
 | `idx_line_events_message` | `message_id` | — |
 | `idx_line_events_status_received` | `process_status`, `received_at` | — |
+| `line_webhook_events_created_by_foreign_idx` | `created_by` | — |
+| `line_webhook_events_updated_by_foreign_idx` | `updated_by` | — |
 
 ---
 

@@ -22,6 +22,9 @@ for (const model of Object.values(db)) {
   if (model && typeof model.associate === 'function') model.associate(db);
 }
 
+// Stamps created_by / updated_by from the acting user on every table that has them.
+require('../lib/authorship').attachAuthorship(db);
+
 // Every update and soft delete on an audited table is recorded in tbl_audit_history,
 // so "what did this look like before, and who changed it?" always has an answer.
 require('../lib/audit-history').attachAuditHistory(db);

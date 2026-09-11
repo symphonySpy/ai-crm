@@ -183,6 +183,9 @@ module.exports = {
         ...u,
         password_hash: passwordHash,
         is_active: true,
+        // The demo accounts are created by the seeder, i.e. by the system.
+        created_by: null,
+        updated_by: null,
         ...stamp(daysAgo(120)),
       })),
     );
@@ -544,13 +547,25 @@ module.exports = {
     for (const a of activities) {
       a.lead_data_json = snap(leadJson, leadsById, a.lead_id);
       a.actor_data_json = snap(userJson, usersById, a.actor_id);
+      // Authorship mirrors the more specific column each table already had. Null where
+      // the system acted — an inbound message has no user behind it.
+      a.created_by = a.actor_id;
+      a.updated_by = a.actor_id;
     }
     for (const m of messages) {
       m.lead_data_json = snap(leadJson, leadsById, m.lead_id);
       m.contact_data_json = snap(contactJson, contactsById, m.contact_id);
+      m.created_by = m.direction === 'outbound' ? m.approved_by : null;
+      m.updated_by = m.created_by;
     }
     for (const sg of aiSuggestions) {
       sg.lead_data_json = snap(leadJson, leadsById, sg.lead_id);
+      sg.created_by = sg.requested_by;
+      sg.updated_by = sg.decided_by || sg.requested_by;
+    }
+    for (const e of webhookEvents) {
+      e.created_by = null;
+      e.updated_by = null;
     }
 
     // Messages must exist before the webhook events that point at them.

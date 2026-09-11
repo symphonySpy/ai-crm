@@ -29,6 +29,9 @@ module.exports = (sequelize) => {
       name: { type: DataTypes.STRING(120), allowNull: false, validate: { notEmpty: true } },
       role: { type: DataTypes.ENUM(...USER_ROLES), allowNull: false, defaultValue: 'sales' },
       is_active: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true },
+      // Filled by lib/authorship.js from the acting user. Null means the system acted.
+      created_by: { type: DataTypes.UUID, allowNull: true },
+      updated_by: { type: DataTypes.UUID, allowNull: true },
     },
     {
       sequelize,

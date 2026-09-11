@@ -80,6 +80,8 @@ const COLUMNS = {
   'users.role':
     '`sales` เห็น lead ทั้งหมดแต่ส่งข้อความได้เฉพาะ lead ตัวเอง · `manager` ทำได้ทั้งหมด (A3)',
   'users.is_active': 'พนักงานที่ยังทำงานอยู่หรือไม่ ใช้แทนการลบ (A14)',
+  'users.created_by': 'ผู้สร้างเรคคอร์ด · **ว่าง = ระบบเป็นผู้ทำ** เติมอัตโนมัติจาก `actorId` (A12)',
+  'users.updated_by': 'ผู้แก้ไขล่าสุด · เปลี่ยนเฉพาะเมื่อมีข้อมูลอื่นเปลี่ยนจริง',
   'users.created_at': 'เวลาที่สร้างเรคคอร์ด (UTC)',
   'users.updated_at': 'เวลาที่แก้ไขล่าสุด (UTC)',
 
@@ -141,6 +143,8 @@ const COLUMNS = {
   'activities.occurred_at': 'เวลาที่เหตุการณ์เกิดขึ้นจริง (UTC) ใช้เรียง timeline',
   'activities.lead_data_json': 'lead ณ เวลาที่เหตุการณ์เกิด · บันทึกครั้งเดียวตอนสร้าง ไม่เปลี่ยนอีก',
   'activities.actor_data_json': 'ผู้กระทำ ณ เวลานั้น · ว่างเมื่อระบบเป็นผู้กระทำ',
+  'activities.created_by': 'ผู้สร้างเรคคอร์ด · **ว่าง = ระบบเป็นผู้ทำ** เติมอัตโนมัติจาก `actorId` (A12)',
+  'activities.updated_by': 'ผู้แก้ไขล่าสุด · เปลี่ยนเฉพาะเมื่อมีข้อมูลอื่นเปลี่ยนจริง',
   'activities.created_at':
     'เวลาที่บันทึกลงฐานข้อมูล (UTC) ไม่มี `updated_at` เพราะตารางนี้เขียนอย่างเดียว',
 
@@ -161,6 +165,8 @@ const COLUMNS = {
   'messages.sent_at': 'เวลาที่ส่งสำเร็จ (UTC)',
   'messages.lead_data_json': 'lead ณ เวลาที่บันทึกข้อความ · บันทึกครั้งเดียวตอนสร้าง',
   'messages.contact_data_json': 'ผู้ติดต่อ ณ เวลาที่บันทึกข้อความ',
+  'messages.created_by': 'ผู้สร้างเรคคอร์ด · **ว่าง = ระบบเป็นผู้ทำ** เติมอัตโนมัติจาก `actorId` (A12)',
+  'messages.updated_by': 'ผู้แก้ไขล่าสุด · เปลี่ยนเฉพาะเมื่อมีข้อมูลอื่นเปลี่ยนจริง',
   'messages.created_at': 'เวลาที่สร้างเรคคอร์ด (UTC)',
   'messages.updated_at': 'เวลาที่แก้ไขล่าสุด (UTC) เปลี่ยนเมื่อสถานะการส่งเปลี่ยน',
 
@@ -181,6 +187,8 @@ const COLUMNS = {
   'ai_suggestions.decided_by': 'ผู้อนุมัติหรือปฏิเสธ · บังคับเมื่อ `status` ไม่ใช่ `proposed`',
   'ai_suggestions.decided_at': 'เวลาที่ตัดสินใจ (UTC) · บังคับคู่กับ `decided_by`',
   'ai_suggestions.lead_data_json': 'lead ณ เวลาที่สร้างคำแนะนำ · เสริมกับ `context_snapshot` ที่เก็บสิ่งที่โมเดลเห็นจริง',
+  'ai_suggestions.created_by': 'ผู้สร้างเรคคอร์ด · **ว่าง = ระบบเป็นผู้ทำ** เติมอัตโนมัติจาก `actorId` (A12)',
+  'ai_suggestions.updated_by': 'ผู้แก้ไขล่าสุด · เปลี่ยนเฉพาะเมื่อมีข้อมูลอื่นเปลี่ยนจริง',
   'ai_suggestions.created_at': 'เวลาที่สร้างคำแนะนำ (UTC)',
   'ai_suggestions.updated_at': 'เวลาที่แก้ไขล่าสุด (UTC)',
 
@@ -199,6 +207,8 @@ const COLUMNS = {
   'line_webhook_events.received_at': 'เวลาที่รับ event (UTC)',
   'line_webhook_events.processed_at':
     'เวลาที่ประมวลผลเสร็จ (UTC) บังคับเมื่อ `process_status = processed`',
+  'line_webhook_events.created_by': 'ผู้สร้างเรคคอร์ด · **ว่าง = ระบบเป็นผู้ทำ** เติมอัตโนมัติจาก `actorId` (A12)',
+  'line_webhook_events.updated_by': 'ผู้แก้ไขล่าสุด · เปลี่ยนเฉพาะเมื่อมีข้อมูลอื่นเปลี่ยนจริง',
   'line_webhook_events.created_at': 'เวลาที่สร้างเรคคอร์ด (UTC)',
   'line_webhook_events.updated_at': 'เวลาที่แก้ไขล่าสุด (UTC)',
 

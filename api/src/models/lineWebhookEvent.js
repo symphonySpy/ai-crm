@@ -33,6 +33,9 @@ module.exports = (sequelize) => {
       message_id: { type: DataTypes.UUID, allowNull: true },
       received_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW },
       processed_at: { type: DataTypes.DATE, allowNull: true },
+      // Filled by lib/authorship.js from the acting user. Null means the system acted.
+      created_by: { type: DataTypes.UUID, allowNull: true },
+      updated_by: { type: DataTypes.UUID, allowNull: true },
     },
     { sequelize, modelName: 'LineWebhookEvent', tableName: 'line_webhook_events' },
   );

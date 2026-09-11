@@ -47,6 +47,9 @@ module.exports = (sequelize) => {
       // The lead as it stood when this suggestion was generated. Complements
       // context_snapshot, which records what the model was actually shown.
       lead_data_json: { type: DataTypes.JSON, allowNull: true },
+      // Filled by lib/authorship.js from the acting user. Null means the system acted.
+      created_by: { type: DataTypes.UUID, allowNull: true },
+      updated_by: { type: DataTypes.UUID, allowNull: true },
     },
     { sequelize, modelName: 'AiSuggestion', tableName: 'ai_suggestions' },
   );

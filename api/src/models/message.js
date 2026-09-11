@@ -44,6 +44,9 @@ module.exports = (sequelize) => {
       // The lead and contact as they stood when this message was recorded.
       lead_data_json: { type: DataTypes.JSON, allowNull: true },
       contact_data_json: { type: DataTypes.JSON, allowNull: true },
+      // Filled by lib/authorship.js from the acting user. Null means the system acted.
+      created_by: { type: DataTypes.UUID, allowNull: true },
+      updated_by: { type: DataTypes.UUID, allowNull: true },
     },
     { sequelize, modelName: 'Message', tableName: 'messages' },
   );

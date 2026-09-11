@@ -30,6 +30,9 @@ module.exports = (sequelize) => {
       // creation, because this row describes a moment that never changes.
       lead_data_json: { type: DataTypes.JSON, allowNull: true },
       actor_data_json: { type: DataTypes.JSON, allowNull: true },
+      // Filled by lib/authorship.js from the acting user. Null means the system acted.
+      created_by: { type: DataTypes.UUID, allowNull: true },
+      updated_by: { type: DataTypes.UUID, allowNull: true },
     },
     {
       sequelize,

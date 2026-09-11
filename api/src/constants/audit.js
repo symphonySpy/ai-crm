@@ -28,8 +28,12 @@ const AUDITED_TABLES = [
 //   context_snapshot     the AI bundle and the model's input. Same reasoning — already
 //                        immutable where they live.
 //   created_at,
-//   updated_at           bookkeeping. updated_at changes on literally every write, so
-//                        logging it would add a meaningless line to every entry.
+//   updated_at,
+//   created_by,
+//   updated_by           bookkeeping. updated_at and updated_by change on literally
+//                        every write, so logging them would add a meaningless line to
+//                        every entry — and the audit row already records changed_by,
+//                        which is the same fact stated once.
 //
 // The *_data_json and *_master_json snapshot columns are excluded dynamically (see
 // isAuditable): they are themselves point-in-time copies, and auditing a snapshot
@@ -41,6 +45,8 @@ const AUDIT_DENY_FIELDS = new Set([
   'context_snapshot',
   'created_at',
   'updated_at',
+  'created_by',
+  'updated_by',
 ]);
 
 const isAuditable = (field) =>
