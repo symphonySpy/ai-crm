@@ -20,9 +20,11 @@
     "logs:prune": "node scripts/prune-rest-log.js",
     "messages:retry": "node scripts/retry-pending-messages.js",
     "deploy:migrate": "sequelize-cli db:migrate",
-    "deploy:seed": "sequelize-cli db:seed:all"
+    "deploy:seed": "sequelize-cli db:seed:all",
+    "test:skill": "node ../skills/crm-copilot/evals.js"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.125.0",
     "bcryptjs": "^2.4.3",
     "cookie-parser": "^1.4.7",
     "dotenv": "^16.4.5",

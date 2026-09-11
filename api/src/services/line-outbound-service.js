@@ -19,11 +19,17 @@ const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
  */
 async function sendWithRetry({ to, text, adapter, log = logger }) {
   let lastError;
+  // Counted, not assumed. Reporting MAX_ATTEMPTS on every failure would record three
+  // attempts for a 4xx that was correctly tried once — the retry logic would be right
+  // and the audit trail would say otherwise, which is the worse of the two failures
+  // because nobody would think to check it.
+  let attemptsMade = 0;
 
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
+    attemptsMade = attempt;
     try {
       const result = await adapter.sendText({ to, text });
-      return { ok: true, attempts: attempt, messageId: result.messageId };
+      return { ok: true, attempts: attemptsMade, messageId: result.messageId };
     } catch (err) {
       lastError = err;
       if (!err.retryable || attempt === MAX_ATTEMPTS) break;
@@ -34,7 +40,7 @@ async function sendWithRetry({ to, text, adapter, log = logger }) {
     }
   }
 
-  return { ok: false, attempts: MAX_ATTEMPTS, error: lastError };
+  return { ok: false, attempts: attemptsMade, error: lastError };
 }
 
 /**

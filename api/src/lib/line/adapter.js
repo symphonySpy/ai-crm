@@ -127,7 +127,12 @@ class MockLineAdapter {
         retryable: this.failureRetryable,
       });
     }
-    const messageId = `mock-${this.sent.length + 1}`;
+    // Unique per send, not per adapter instance. A counter looks tidier but collides
+    // with rows left by an earlier run, and messages.line_message_id is unique — the
+    // test then fails the second time it is run, for a reason that has nothing to do
+    // with the code under test. A suite that only passes on a fresh database is a suite
+    // people learn to ignore.
+    const messageId = `mock-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
     this.sent.push({ to, text, messageId, at: new Date() });
     return { messageId };
   }

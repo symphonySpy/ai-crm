@@ -12,6 +12,7 @@ const authRoutes = require('./routes/auth');
 const leadRoutes = require('./routes/leads');
 const directoryRoutes = require('./routes/directory');
 const messageRoutes = require('./routes/messages');
+const aiRoutes = require('./routes/ai');
 const lineWebhookRoutes = require('./routes/line-webhook');
 
 function createApp() {
@@ -77,6 +78,7 @@ function createApp() {
   app.use('/api/leads', captureMount, requireAuth, leadRoutes);
   app.use('/api', captureMount, requireAuth, directoryRoutes);
   app.use('/api', captureMount, requireAuth, messageRoutes);
+  app.use('/api', captureMount, requireAuth, aiRoutes);
 
   app.use(notFoundHandler);
   app.use(errorHandler);
