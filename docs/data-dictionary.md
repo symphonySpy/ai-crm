@@ -16,11 +16,12 @@ MySQL 8.0 · charset `utf8mb4` · collation `utf8mb4_unicode_ci` · เวลา
 | `companies` | บริษัทลูกค้า ใช้จัดกลุ่ม contact และ lead | 400 | 8 |
 | `contacts` | บุคคลที่ติดต่อ คือลูกค้าหรือผู้มุ่งหวังตัวจริง | 2,000 | 13 |
 | `leads` | โอกาสทางการขาย เป็นออบเจ็กต์แกนกลางของทั้งระบบ | 300 | 17 |
-| `activities` | บันทึกเหตุการณ์ทั้งหมดของ lead คือ audit trail ระดับธุรกิจ | 1,306 | 13 |
+| `activities` | บันทึกเหตุการณ์ทั้งหมดของ lead คือ audit trail ระดับธุรกิจ | 1,312 | 13 |
 | `messages` | ข้อความสนทนากับลูกค้าทั้งขาเข้าและขาออก | 392 | 19 |
 | `ai_suggestions` | ผลลัพธ์จาก AI copilot ที่ยังไม่ถือเป็นการกระทำจริง | 76 | 17 |
 | `line_webhook_events` | บันทึกดิบของทุก event ที่ LINE ส่งเข้ามา | 238 | 14 |
-| `tbl_audit_history` | ประวัติการแก้ไขและการปิดใช้งานของทุกตารางที่ตรวจสอบ 1 การแก้ = 1 แถว | 1 | 9 |
+| `tbl_audit_history` | ประวัติการแก้ไขและการปิดใช้งานของทุกตารางที่ตรวจสอบ 1 การแก้ = 1 แถว | 4 | 9 |
+| `rest_log` | บันทึกทุกการเรียก API ทั้งขาเข้าและขาออก ใช้ตรวจว่าหน้าจอเรียกเส้นไหนและได้อะไรกลับ | 5 | 14 |
 
 ---
 
@@ -377,6 +378,41 @@ MySQL 8.0 · charset `utf8mb4` · collation `utf8mb4_unicode_ci` · เวลา
 | `idx_audit_action` | `action`, `changed_at` | — |
 | `idx_audit_actor` | `changed_by`, `changed_at` | — |
 | `idx_audit_entity` | `table_name`, `entity_id`, `changed_at` | — |
+
+---
+
+## `rest_log`
+
+บันทึกทุกการเรียก API ทั้งขาเข้าและขาออก ใช้ตรวจว่าหน้าจอเรียกเส้นไหนและได้อะไรกลับ
+
+> เป็นตาราง**ปฏิบัติการ** ไม่ใช่ตารางธุรกิจ (A42) ค่าที่อ่อนไหวและข้อมูลส่วนบุคคลถูกแทนที่ด้วย `[redacted]` ก่อนสร้างแถว · เขียนหลังส่ง response แล้ว และถ้าเขียนไม่สำเร็จจะไม่กระทบคำขอ · เก็บ 90 วัน ล้างด้วย `npm run logs:prune`
+
+| คอลัมน์ | ชนิด | ว่างได้ | ค่าเริ่มต้น | คีย์ | คำอธิบาย |
+|---|---|:---:|---|---|---|
+| `id` | bigint unsigned | — |  | PK | รหัสรายการ เรียงตามลำดับการเขียน |
+| `request_id` | varchar(64) | — |  |  | id เดียวกับที่อยู่ใน structured log และ header `x-request-id` ใช้เชื่อมแถวนี้กับ log ทุกบรรทัดของคำขอเดียวกัน |
+| `method` | varchar(10) | — |  |  | HTTP method |
+| `path` | varchar(512) | — |  |  | URL ที่ถูกเรียกจริงรวม query string |
+| `route` | varchar(255) | ✓ |  |  | route pattern ที่แมตช์ เช่น `/api/leads/:id` · เก็บคู่กับ `path` เพื่อให้จัดกลุ่มตาม endpoint ได้โดยไม่ต้องแยก id ออกจาก path เอง · ว่างเมื่อไม่มี route ใดรับ |
+| `status_code` | smallint unsigned | — |  |  | HTTP status ที่ตอบกลับ |
+| `duration_ms` | int unsigned | — |  |  | เวลาที่ใช้ทั้งคำขอ หน่วยมิลลิวินาที |
+| `query_json` | json | ✓ |  |  | query string หลังผ่านการตรวจและปิดบังค่าที่อ่อนไหว |
+| `request_body` | json | ✓ |  |  | เนื้อหาคำขอหลังปิดบัง · payload ที่ใหญ่เกินกำหนดถูกแทนด้วย `{_truncated, _bytes}` เพื่อให้ค่าที่เก็บยังเป็น JSON ที่ถูกต้องเสมอ |
+| `response_body` | json | ✓ |  |  | เนื้อหาที่ตอบกลับ ใช้กติกาเดียวกับ `request_body` |
+| `user_id` | char(36) (UUID) | ✓ |  | FK → `users.id` (del: RESTRICT) | ผู้เรียก · ว่างเมื่อยังไม่ได้ล็อกอิน เช่น login ที่ล้มเหลว |
+| `ip` | varchar(45) | ✓ |  |  | IP ต้นทาง · เก็บที่นี่ได้เพราะเป็นตารางที่มีอายุการเก็บกำกับ ไม่ใช่ตารางธุรกิจ (A15) |
+| `user_agent` | varchar(255) | ✓ |  |  | user agent ของ client ตัดที่ 255 ตัวอักษร |
+| `created_at` | datetime(3) | — |  |  | เวลาที่บันทึก (UTC) ความละเอียดมิลลิวินาที ไม่มี `updated_at` เพราะเขียนอย่างเดียว |
+
+**ดัชนี**
+
+| ชื่อ | คอลัมน์ | unique |
+|---|---|:---:|
+| `idx_rest_log_created` | `created_at` | — |
+| `idx_rest_log_request` | `request_id` | — |
+| `idx_rest_log_route` | `route`, `created_at` | — |
+| `idx_rest_log_status` | `status_code`, `created_at` | — |
+| `idx_rest_log_user` | `user_id`, `created_at` | — |
 
 ---
 

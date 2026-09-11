@@ -4,6 +4,7 @@ const express = require('express');
 const cookieParser = require('cookie-parser');
 const db = require('./models');
 const { requestContext } = require('./middleware/request-context');
+const { restLog, captureMount } = require('./middleware/rest-log');
 const { notFoundHandler, errorHandler } = require('./middleware/errors');
 const { attachUser, requireAuth } = require('./middleware/auth');
 const { ok, fail } = require('./lib/api-response');
@@ -35,6 +36,11 @@ function createApp() {
   app.use(cookieParser(process.env.SESSION_SECRET));
   app.use(attachUser);
 
+  // Records every API call to rest_log — request, response, status, duration. Mounted
+  // after attachUser so the row knows who called, and after express.json so it sees the
+  // parsed body. Writes happen once the response has been sent (middleware/rest-log.js).
+  app.use(restLog);
+
   // Liveness only. It deliberately does not touch the database: a health check that
   // fails when the database is briefly unreachable invites the platform to restart a
   // process that is working fine.
@@ -56,9 +62,11 @@ function createApp() {
     }
   });
 
-  app.use('/api/auth', authRoutes);
-  app.use('/api/leads', requireAuth, leadRoutes);
-  app.use('/api', requireAuth, directoryRoutes);
+  // captureMount records where each router is mounted while req.baseUrl is still set;
+  // see middleware/rest-log.js for why that has to happen on the way in.
+  app.use('/api/auth', captureMount, authRoutes);
+  app.use('/api/leads', captureMount, requireAuth, leadRoutes);
+  app.use('/api', captureMount, requireAuth, directoryRoutes);
 
   app.use(notFoundHandler);
   app.use(errorHandler);

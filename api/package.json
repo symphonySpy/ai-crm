@@ -16,7 +16,8 @@
     "test": "vitest run",
     "docs:datadict": "node scripts/generate-data-dictionary.js",
     "docs:erd": "node scripts/generate-erd.js",
-    "docs": "npm run docs:datadict && npm run docs:erd"
+    "docs": "npm run docs:datadict && npm run docs:erd",
+    "logs:prune": "node scripts/prune-rest-log.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

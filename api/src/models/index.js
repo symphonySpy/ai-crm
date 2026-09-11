@@ -16,6 +16,7 @@ const db = {
   AiSuggestion: require('./aiSuggestion')(sequelize),
   LineWebhookEvent: require('./lineWebhookEvent')(sequelize),
   AuditHistory: require('./auditHistory')(sequelize),
+  RestLog: require('./restLog')(sequelize),
 };
 
 for (const model of Object.values(db)) {

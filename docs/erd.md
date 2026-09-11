@@ -40,6 +40,7 @@ erDiagram
   CONTACTS ||--o{ MESSAGES : "contact_id"
   USERS |o--o{ MESSAGES : "approved_by"
   USERS |o--o{ MESSAGES : "updated_by"
+  USERS |o--o{ REST_LOG : "user_id"
   USERS |o--o{ TBL_AUDIT_HISTORY : "changed_by"
   USERS |o--o{ USERS : "created_by"
   USERS |o--o{ USERS : "updated_by"
@@ -128,6 +129,10 @@ erDiagram
     json new_json
     uuid changed_by FK
   }
+  REST_LOG {
+    bigint id PK
+    uuid user_id FK
+  }
 ```
 
 ---
@@ -145,4 +150,5 @@ erDiagram
 | `ai_suggestions` | ผลลัพธ์จาก AI copilot ที่ยังไม่ถือเป็นการกระทำจริง |
 | `line_webhook_events` | บันทึกดิบของทุก event ที่ LINE ส่งเข้ามา |
 | `tbl_audit_history` | ประวัติการแก้ไขและการปิดใช้งานของทุกตารางที่ตรวจสอบ 1 การแก้ = 1 แถว |
+| `rest_log` | บันทึกทุกการเรียก API ทั้งขาเข้าและขาออก ใช้ตรวจว่าหน้าจอเรียกเส้นไหนและได้อะไรกลับ |
 

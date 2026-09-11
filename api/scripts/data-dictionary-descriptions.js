@@ -15,6 +15,7 @@ const TABLE_ORDER = [
   'ai_suggestions',
   'line_webhook_events',
   'tbl_audit_history',
+  'rest_log',
 ];
 
 const TABLES = {
@@ -54,6 +55,13 @@ const TABLES = {
     note:
       'เป็นเส้นแบ่งหลักของระบบ (A22) AI เขียนได้เฉพาะตารางนี้ ' +
       'จะแก้ lead หรือส่งข้อความออกได้ต่อเมื่อมีคนเปลี่ยน `status` เท่านั้น',
+  },
+  rest_log: {
+    purpose: 'บันทึกทุกการเรียก API ทั้งขาเข้าและขาออก ใช้ตรวจว่าหน้าจอเรียกเส้นไหนและได้อะไรกลับ',
+    note:
+      'เป็นตาราง**ปฏิบัติการ** ไม่ใช่ตารางธุรกิจ (A42) ค่าที่อ่อนไหวและข้อมูลส่วนบุคคลถูกแทนที่ด้วย ' +
+      '`[redacted]` ก่อนสร้างแถว · เขียนหลังส่ง response แล้ว และถ้าเขียนไม่สำเร็จจะไม่กระทบคำขอ · ' +
+      'เก็บ 90 วัน ล้างด้วย `npm run logs:prune`',
   },
   tbl_audit_history: {
     purpose: 'ประวัติการแก้ไขและการปิดใช้งานของทุกตารางที่ตรวจสอบ 1 การแก้ = 1 แถว',
@@ -211,6 +219,25 @@ const COLUMNS = {
   'line_webhook_events.updated_by': 'ผู้แก้ไขล่าสุด · เปลี่ยนเฉพาะเมื่อมีข้อมูลอื่นเปลี่ยนจริง',
   'line_webhook_events.created_at': 'เวลาที่สร้างเรคคอร์ด (UTC)',
   'line_webhook_events.updated_at': 'เวลาที่แก้ไขล่าสุด (UTC)',
+
+  'rest_log.id': 'รหัสรายการ เรียงตามลำดับการเขียน',
+  'rest_log.request_id':
+    'id เดียวกับที่อยู่ใน structured log และ header `x-request-id` ใช้เชื่อมแถวนี้กับ log ทุกบรรทัดของคำขอเดียวกัน',
+  'rest_log.method': 'HTTP method',
+  'rest_log.path': 'URL ที่ถูกเรียกจริงรวม query string',
+  'rest_log.route':
+    'route pattern ที่แมตช์ เช่น `/api/leads/:id` · เก็บคู่กับ `path` เพื่อให้จัดกลุ่มตาม endpoint ได้โดยไม่ต้องแยก id ออกจาก path เอง · ว่างเมื่อไม่มี route ใดรับ',
+  'rest_log.status_code': 'HTTP status ที่ตอบกลับ',
+  'rest_log.duration_ms': 'เวลาที่ใช้ทั้งคำขอ หน่วยมิลลิวินาที',
+  'rest_log.query_json': 'query string หลังผ่านการตรวจและปิดบังค่าที่อ่อนไหว',
+  'rest_log.request_body':
+    'เนื้อหาคำขอหลังปิดบัง · payload ที่ใหญ่เกินกำหนดถูกแทนด้วย `{_truncated, _bytes}` เพื่อให้ค่าที่เก็บยังเป็น JSON ที่ถูกต้องเสมอ',
+  'rest_log.response_body': 'เนื้อหาที่ตอบกลับ ใช้กติกาเดียวกับ `request_body`',
+  'rest_log.user_id': 'ผู้เรียก · ว่างเมื่อยังไม่ได้ล็อกอิน เช่น login ที่ล้มเหลว',
+  'rest_log.ip':
+    'IP ต้นทาง · เก็บที่นี่ได้เพราะเป็นตารางที่มีอายุการเก็บกำกับ ไม่ใช่ตารางธุรกิจ (A15)',
+  'rest_log.user_agent': 'user agent ของ client ตัดที่ 255 ตัวอักษร',
+  'rest_log.created_at': 'เวลาที่บันทึก (UTC) ความละเอียดมิลลิวินาที ไม่มี `updated_at` เพราะเขียนอย่างเดียว',
 
   'tbl_audit_history.id': 'รหัสรายการ เรียงตามลำดับการเขียน ใช้ตัดสินลำดับเมื่อเวลาเท่ากัน',
   'tbl_audit_history.table_name': 'ตารางที่ถูกแก้ · เป็น ENUM เพื่อให้ฐานข้อมูลปฏิเสธชื่อตารางที่ไม่ได้ track',
