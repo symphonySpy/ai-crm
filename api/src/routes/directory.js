@@ -60,7 +60,7 @@ router.get('/companies/:id', validate({ params: idParam }), async (req, res, nex
 router.get('/users', async (req, res, next) => {
   try {
     const users = await directory.listActiveUsers();
-    return ok(res, { items: users }, `Found ${users.length} active user(s)`);
+    return ok(res, { rows: users }, `Found ${users.length} active user(s)`);
   } catch (err) {
     return next(err);
   }

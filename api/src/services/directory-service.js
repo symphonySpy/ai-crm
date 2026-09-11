@@ -27,10 +27,12 @@ async function list(Model, { q, includeInactive, page, limit, searchFields, incl
     distinct: true,
   });
 
-  // `items`, not `data`: this object is itself placed under `data` in the response
+  // `rows`, not `data`: this object is itself placed under `data` in the response
   // envelope, and `data.data` is the kind of shape that makes a client author guess.
+  // `rows` also matches what findAndCountAll hands back, so the name does not change
+  // shape as the value travels from the query to the client.
   return {
-    items: rows,
+    rows,
     pagination: { page, limit, total: count, pages: Math.ceil(count / limit) },
   };
 }
