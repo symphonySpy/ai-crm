@@ -6,6 +6,7 @@ const db = require('./models');
 const { requestContext } = require('./middleware/request-context');
 const { notFoundHandler, errorHandler } = require('./middleware/errors');
 const { attachUser, requireAuth } = require('./middleware/auth');
+const { ok, fail } = require('./lib/api-response');
 const authRoutes = require('./routes/auth');
 const leadRoutes = require('./routes/leads');
 const directoryRoutes = require('./routes/directory');
@@ -37,17 +38,21 @@ function createApp() {
   // Liveness only. It deliberately does not touch the database: a health check that
   // fails when the database is briefly unreachable invites the platform to restart a
   // process that is working fine.
-  app.get('/health', (req, res) => res.json({ status: 'ok', uptime: process.uptime() }));
+  app.get('/health', (req, res) => ok(res, { uptime: process.uptime() }, 'Service is alive'));
 
   // Readiness, which does check the database, because "ready to serve traffic" is
   // exactly the question that depends on it.
   app.get('/ready', async (req, res) => {
     try {
       await db.sequelize.authenticate();
-      res.json({ status: 'ready' });
+      return ok(res, { database: 'reachable' }, 'Ready to serve traffic');
     } catch (err) {
       req.log.error({ err }, 'readiness check failed');
-      res.status(503).json({ status: 'unavailable' });
+      return fail(res, {
+        code: 503,
+        message: 'Database is unreachable',
+        requestId: req.id,
+      });
     }
   });
 

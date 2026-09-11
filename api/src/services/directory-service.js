@@ -27,8 +27,10 @@ async function list(Model, { q, includeInactive, page, limit, searchFields, incl
     distinct: true,
   });
 
+  // `items`, not `data`: this object is itself placed under `data` in the response
+  // envelope, and `data.data` is the kind of shape that makes a client author guess.
   return {
-    data: rows,
+    items: rows,
     pagination: { page, limit, total: count, pages: Math.ceil(count / limit) },
   };
 }

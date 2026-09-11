@@ -3,6 +3,7 @@
 const express = require('express');
 const { z } = require('zod');
 const { validate } = require('../middleware/validate');
+const { ok } = require('../lib/api-response');
 const directory = require('../services/directory-service');
 
 // Contacts, companies and users — the reference data the lead screens hang off.
@@ -20,35 +21,49 @@ const listQuery = z.object({
   limit: z.coerce.number().int().min(1).max(100).default(25),
 });
 
-const route = (handler) => (req, res, next) => handler(req, res, next).catch(next);
+router.get('/contacts', validate({ query: listQuery }), async (req, res, next) => {
+  try {
+    const result = await directory.listContacts(req.query);
+    return ok(res, result, `Found ${result.pagination.total} contact(s)`);
+  } catch (err) {
+    return next(err);
+  }
+});
 
-router.get(
-  '/contacts',
-  validate({ query: listQuery }),
-  route(async (req, res) => res.json(await directory.listContacts(req.query))),
-);
+router.get('/contacts/:id', validate({ params: idParam }), async (req, res, next) => {
+  try {
+    const contact = await directory.getContact(req.params.id);
+    return ok(res, { contact }, 'Contact detail');
+  } catch (err) {
+    return next(err);
+  }
+});
 
-router.get(
-  '/contacts/:id',
-  validate({ params: idParam }),
-  route(async (req, res) => res.json({ contact: await directory.getContact(req.params.id) })),
-);
+router.get('/companies', validate({ query: listQuery }), async (req, res, next) => {
+  try {
+    const result = await directory.listCompanies(req.query);
+    return ok(res, result, `Found ${result.pagination.total} company(ies)`);
+  } catch (err) {
+    return next(err);
+  }
+});
 
-router.get(
-  '/companies',
-  validate({ query: listQuery }),
-  route(async (req, res) => res.json(await directory.listCompanies(req.query))),
-);
+router.get('/companies/:id', validate({ params: idParam }), async (req, res, next) => {
+  try {
+    const company = await directory.getCompany(req.params.id);
+    return ok(res, { company }, 'Company detail');
+  } catch (err) {
+    return next(err);
+  }
+});
 
-router.get(
-  '/companies/:id',
-  validate({ params: idParam }),
-  route(async (req, res) => res.json({ company: await directory.getCompany(req.params.id) })),
-);
-
-router.get(
-  '/users',
-  route(async (req, res) => res.json({ data: await directory.listActiveUsers() })),
-);
+router.get('/users', async (req, res, next) => {
+  try {
+    const users = await directory.listActiveUsers();
+    return ok(res, { items: users }, `Found ${users.length} active user(s)`);
+  } catch (err) {
+    return next(err);
+  }
+});
 
 module.exports = router;

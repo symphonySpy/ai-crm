@@ -4,11 +4,16 @@ const express = require('express');
 const { z } = require('zod');
 const { LEAD_STAGES, LEAD_SOURCES } = require('../constants/enums');
 const { validate } = require('../middleware/validate');
+const { ok, created } = require('../lib/api-response');
 const leads = require('../services/lead-service');
 
 // Routes are HTTP adapters and nothing else: check the input, call a service, shape a
 // response. Every decision about what the system does lives in src/services, so the
 // rules can be read — and tested — without an HTTP request in the way.
+//
+// Each handler wraps its work in try/catch and hands the error to next(). Express 4
+// does not forward a rejected promise on its own, so without this a database failure
+// becomes a request that never answers instead of a 500 carrying a request id.
 const router = express.Router();
 
 const uuid = z.string().uuid();
@@ -50,75 +55,94 @@ const stageBody = z.object({
 const ownerBody = z.object({ owner_id: uuid.nullable() });
 const noteBody = z.object({ note: z.string().trim().min(1).max(2000) });
 
-// Express 4 does not forward a rejected promise to the error handler, so every async
-// handler is wrapped. Without this a database failure becomes a hung request instead of
-// a 500 with a request id.
-const route = (handler) => (req, res, next) => handler(req, res, next).catch(next);
+router.get('/', validate({ query: listQuery }), async (req, res, next) => {
+  try {
+    const result = await leads.listLeads(req.query);
+    return ok(res, result, `Found ${result.pagination.total} lead(s)`);
+  } catch (err) {
+    return next(err);
+  }
+});
 
-router.get(
-  '/',
-  validate({ query: listQuery }),
-  route(async (req, res) => res.json(await leads.listLeads(req.query))),
-);
+router.get('/summary', async (req, res, next) => {
+  try {
+    return ok(res, await leads.pipelineSummary(), 'Pipeline summary');
+  } catch (err) {
+    return next(err);
+  }
+});
 
-router.get(
-  '/summary',
-  route(async (req, res) => res.json(await leads.pipelineSummary())),
-);
+router.get('/:id', validate({ params: idParam }), async (req, res, next) => {
+  try {
+    return ok(res, await leads.getLeadDetail(req.params.id), 'Lead detail');
+  } catch (err) {
+    return next(err);
+  }
+});
 
-router.get(
-  '/:id',
-  validate({ params: idParam }),
-  route(async (req, res) => res.json(await leads.getLeadDetail(req.params.id))),
-);
-
-router.post(
-  '/',
-  validate({ body: createBody }),
-  route(async (req, res) => {
+router.post('/', validate({ body: createBody }), async (req, res, next) => {
+  try {
     const lead = await leads.createLead({ input: req.body, actor: req.user });
-    res.status(201).json({ lead });
-  }),
-);
+    return created(res, { lead }, 'Lead created');
+  } catch (err) {
+    return next(err);
+  }
+});
 
 router.patch(
   '/:id/stage',
   validate({ params: idParam, body: stageBody }),
-  route(async (req, res) => {
-    const lead = await leads.changeStage({
-      leadId: req.params.id,
-      toStage: req.body.stage,
-      note: req.body.note,
-      actor: req.user,
-    });
-    res.json({ lead });
-  }),
+  async (req, res, next) => {
+    try {
+      const lead = await leads.changeStage({
+        leadId: req.params.id,
+        toStage: req.body.stage,
+        note: req.body.note,
+        actor: req.user,
+      });
+      return ok(res, { lead }, `Stage changed to ${lead.stage}`);
+    } catch (err) {
+      return next(err);
+    }
+  },
 );
 
 router.patch(
   '/:id/owner',
   validate({ params: idParam, body: ownerBody }),
-  route(async (req, res) => {
-    const lead = await leads.assignOwner({
-      leadId: req.params.id,
-      ownerId: req.body.owner_id,
-      actor: req.user,
-    });
-    res.json({ lead });
-  }),
+  async (req, res, next) => {
+    try {
+      const lead = await leads.assignOwner({
+        leadId: req.params.id,
+        ownerId: req.body.owner_id,
+        actor: req.user,
+      });
+      return ok(
+        res,
+        { lead },
+        lead.owner_id ? 'Owner assigned' : 'Owner cleared; lead returned to triage',
+      );
+    } catch (err) {
+      return next(err);
+    }
+  },
 );
 
 router.post(
   '/:id/notes',
   validate({ params: idParam, body: noteBody }),
-  route(async (req, res) => {
-    const activity = await leads.addNote({
-      leadId: req.params.id,
-      note: req.body.note,
-      actor: req.user,
-    });
-    res.status(201).json({ activity });
-  }),
+  async (req, res, next) => {
+    try {
+      const activity = await leads.addNote({
+        leadId: req.params.id,
+        note: req.body.note,
+        actor: req.user,
+      });
+      return created(res, { activity }, 'Note added');
+    } catch (err) {
+      return next(err);
+    }
+  },
 );
 
 module.exports = router;
