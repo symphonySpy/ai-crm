@@ -1,0 +1,39 @@
+# Local MySQL for development and tests.
+#
+#   docker compose up -d
+#
+# Port 3307 on the host, not 3306: a developer machine usually already has something
+# on 3306, and a container that silently fails to bind is a confusing first five
+# minutes. The API's .env points at 127.0.0.1:3307 to match.
+#
+# These credentials are local-only fixtures. Nothing here is used by any deployment —
+# the deployed API reads MYSQL_URL from the platform's environment settings (see
+# docs/deploy.md), and no real secret is ever committed to this repository.
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: ai-crm-mysql
+    restart: unless-stopped
+    ports:
+      - '3307:3306'
+    environment:
+      MYSQL_ROOT_PASSWORD: devroot
+      MYSQL_DATABASE: ai_crm
+      MYSQL_USER: ai_crm
+      MYSQL_PASSWORD: devpass
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    volumes:
+      - mysql-data:/var/lib/mysql
+      # Creates the separate ai_crm_test database on first boot.
+      - ./docker/mysql-init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ['CMD', 'mysqladmin', 'ping', '-h', '127.0.0.1', '-uroot', '-pdevroot']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  mysql-data:

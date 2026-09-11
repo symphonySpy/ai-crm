@@ -1,7 +1,7 @@
 'use strict';
 
 const express = require('express');
-const rateLimit = require('express-rate-limit');
+const { rateLimit, ipKeyGenerator } = require('express-rate-limit');
 const { z } = require('zod');
 const { validate } = require('../middleware/validate');
 const { ok, created } = require('../lib/api-response');
@@ -21,8 +21,10 @@ const generateLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   // Per user rather than per IP: an office behind one address would otherwise share
-  // a single allowance between everyone in it.
-  keyGenerator: (req) => (req.user ? req.user.id : req.ip),
+  // a single allowance between everyone in it. The unauthenticated fallback goes
+  // through ipKeyGenerator, which groups an IPv6 address by its /64 prefix — a raw
+  // req.ip would let one client rotate through the addresses it already owns.
+  keyGenerator: (req) => (req.user ? req.user.id : ipKeyGenerator(req.ip)),
   message: {
     success: false,
     code: 429,

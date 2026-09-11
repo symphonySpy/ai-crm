@@ -14,6 +14,7 @@
     "db:seed": "sequelize-cli db:seed:all",
     "db:reset": "sequelize-cli db:migrate:undo:all && sequelize-cli db:migrate && sequelize-cli db:seed:all",
     "test": "vitest run",
+    "test:db": "sequelize-cli db:migrate --env test",
     "docs:datadict": "node scripts/generate-data-dictionary.js",
     "docs:erd": "node scripts/generate-erd.js",
     "docs": "npm run docs:datadict && npm run docs:erd",
