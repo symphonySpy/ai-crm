@@ -41,6 +41,9 @@ module.exports = (sequelize) => {
       error_detail: { type: DataTypes.TEXT, allowNull: true },
       approved_by: { type: DataTypes.UUID, allowNull: true },
       sent_at: { type: DataTypes.DATE, allowNull: true },
+      // The lead and contact as they stood when this message was recorded.
+      lead_data_json: { type: DataTypes.JSON, allowNull: true },
+      contact_data_json: { type: DataTypes.JSON, allowNull: true },
     },
     { sequelize, modelName: 'Message', tableName: 'messages' },
   );

@@ -15,16 +15,19 @@ const db = {
   Message: require('./message')(sequelize),
   AiSuggestion: require('./aiSuggestion')(sequelize),
   LineWebhookEvent: require('./lineWebhookEvent')(sequelize),
-  FieldChangeLog: require('./fieldChangeLog')(sequelize),
+  AuditHistory: require('./auditHistory')(sequelize),
 };
 
 for (const model of Object.values(db)) {
   if (model && typeof model.associate === 'function') model.associate(db);
 }
 
-// Records changes to the fields listed in constants/tracked-fields.js, so a question
-// like "what was this company called when we closed that deal?" has an answer without
-// copying the company name into every table that references it.
-require('../lib/change-tracking').attachChangeTracking(db);
+// Every update and soft delete on an audited table is recorded in tbl_audit_history,
+// so "what did this look like before, and who changed it?" always has an answer.
+require('../lib/audit-history').attachAuditHistory(db);
+
+// Freezes the related records each row was attached to, at the moment it was written.
+// Maintained solely by these hooks — application code never writes the *_json columns.
+require('../lib/entity-snapshots').attachEntitySnapshots(db);
 
 module.exports = db;

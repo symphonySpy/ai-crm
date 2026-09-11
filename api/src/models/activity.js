@@ -26,6 +26,10 @@ module.exports = (sequelize) => {
       to_stage: { type: DataTypes.ENUM(...LEAD_STAGES), allowNull: true },
       note: { type: DataTypes.TEXT, allowNull: true },
       occurred_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW },
+      // The lead and the actor as they stood when this event happened. Captured once at
+      // creation, because this row describes a moment that never changes.
+      lead_data_json: { type: DataTypes.JSON, allowNull: true },
+      actor_data_json: { type: DataTypes.JSON, allowNull: true },
     },
     {
       sequelize,

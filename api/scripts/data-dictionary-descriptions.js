@@ -14,7 +14,7 @@ const TABLE_ORDER = [
   'messages',
   'ai_suggestions',
   'line_webhook_events',
-  'field_change_log',
+  'tbl_audit_history',
 ];
 
 const TABLES = {
@@ -55,12 +55,13 @@ const TABLES = {
       'เป็นเส้นแบ่งหลักของระบบ (A22) AI เขียนได้เฉพาะตารางนี้ ' +
       'จะแก้ lead หรือส่งข้อความออกได้ต่อเมื่อมีคนเปลี่ยน `status` เท่านั้น',
   },
-  field_change_log: {
-    purpose: 'ประวัติการเปลี่ยนแปลงของฟิลด์ที่เลือกไว้ ใช้ตอบคำถามว่าค่า ณ เวลานั้นคืออะไร',
+  tbl_audit_history: {
+    purpose: 'ประวัติการแก้ไขและการปิดใช้งานของทุกตารางที่ตรวจสอบ 1 การแก้ = 1 แถว',
     note:
-      'ค่าปัจจุบันอ่านจากตารางต้นทางเสมอ ตารางนี้เก็บเฉพาะ**การเปลี่ยนแปลง** ไม่ใช่สำเนาทั้งก้อน (A16) ' +
-      'การอ่านค่าย้อนหลังคือการไล่ย้อนรายการที่เกิดหลังเวลาที่สนใจ ' +
-      'รายการฟิลด์ที่บันทึกกำหนดไว้ใน `constants/tracked-fields.js`',
+      'บอกครบว่าแก้ตารางไหน แถวไหน เปลี่ยนจากอะไรเป็นอะไร ใครแก้ เมื่อไร (A16) ' +
+      'เก็บเฉพาะคอลัมน์ที่เปลี่ยนจริง ไม่ใช่ทั้งแถว แก้กี่ฟิลด์พร้อมกันก็ได้แถวเดียว ' +
+      'การอ่านค่าย้อนหลังคือไล่ย้อนรายการที่เกิดหลังเวลาที่สนใจ · ' +
+      '`activities` ไม่อยู่ในรายการเพราะเขียนอย่างเดียวอยู่แล้ว ตัวมันเองคือประวัติ',
   },
   line_webhook_events: {
     purpose: 'บันทึกดิบของทุก event ที่ LINE ส่งเข้ามา',
@@ -100,6 +101,8 @@ const COLUMNS = {
   'contacts.line_display_name':
     'ชื่อที่แสดงบนโปรไฟล์ LINE ตอนติดต่อครั้งแรก ไม่ใช่ชื่อหลัก (A33)',
   'contacts.is_active': 'ผู้ติดต่อที่ยังใช้งานอยู่หรือไม่ ใช้แทนการลบ',
+  'contacts.company_master_json':
+    'ข้อมูลบริษัท ณ เวลาที่ผูก contact เข้ากับบริษัทนี้ · **ไม่ใช่ค่าปัจจุบัน** ค่าปัจจุบันอ่านจากการ join ผ่าน `company_id` เสมอ · ระบบเติมเองผ่าน hook เท่านั้น (A17)',
   'contacts.created_by': 'ผู้สร้างเรคคอร์ด · ว่างเมื่อระบบสร้างจากข้อความ LINE',
   'contacts.updated_by': 'ผู้แก้ไขล่าสุด',
   'contacts.created_at': 'เวลาที่สร้างเรคคอร์ด (UTC)',
@@ -118,6 +121,9 @@ const COLUMNS = {
   'leads.needs_triage':
     'รอมอบหมายเจ้าของ ตั้งอัตโนมัติเมื่อระบบสร้าง lead จาก LINE ที่ยังไม่รู้จักผู้ส่ง (A32)',
   'leads.last_contact_at': 'เวลาที่มีการติดต่อล่าสุด ใช้เป็นเกณฑ์หนึ่งในการให้คะแนน',
+  'leads.contact_data_json': 'ผู้ติดต่อ ณ เวลาที่ผูกกับ lead นี้ · ระบบเติมเองผ่าน hook (A17)',
+  'leads.company_data_json': 'บริษัท ณ เวลาที่ผูกกับ lead นี้',
+  'leads.owner_data_json': 'เจ้าของ lead ณ เวลาที่มอบหมาย · เปลี่ยนตามเมื่อเปลี่ยนเจ้าของ',
   'leads.created_by': 'ผู้สร้างเรคคอร์ด · ว่างเมื่อระบบสร้างจาก LINE',
   'leads.updated_by': 'ผู้แก้ไขล่าสุด',
   'leads.created_at': 'เวลาที่สร้างเรคคอร์ด (UTC)',
@@ -133,6 +139,8 @@ const COLUMNS = {
   'activities.to_stage': 'stage ปลายทาง บังคับเมื่อ `type = stage_changed`',
   'activities.note': 'บันทึกข้อความของพนักงานขาย',
   'activities.occurred_at': 'เวลาที่เหตุการณ์เกิดขึ้นจริง (UTC) ใช้เรียง timeline',
+  'activities.lead_data_json': 'lead ณ เวลาที่เหตุการณ์เกิด · บันทึกครั้งเดียวตอนสร้าง ไม่เปลี่ยนอีก',
+  'activities.actor_data_json': 'ผู้กระทำ ณ เวลานั้น · ว่างเมื่อระบบเป็นผู้กระทำ',
   'activities.created_at':
     'เวลาที่บันทึกลงฐานข้อมูล (UTC) ไม่มี `updated_at` เพราะตารางนี้เขียนอย่างเดียว',
 
@@ -151,6 +159,8 @@ const COLUMNS = {
   'messages.error_detail': 'สาเหตุที่ส่งไม่สำเร็จ เก็บไว้เพื่อให้ตรวจสอบได้',
   'messages.approved_by': 'ผู้อนุมัติให้ส่ง · **บังคับสำหรับขาออก** ด้วย CHECK constraint (A34)',
   'messages.sent_at': 'เวลาที่ส่งสำเร็จ (UTC)',
+  'messages.lead_data_json': 'lead ณ เวลาที่บันทึกข้อความ · บันทึกครั้งเดียวตอนสร้าง',
+  'messages.contact_data_json': 'ผู้ติดต่อ ณ เวลาที่บันทึกข้อความ',
   'messages.created_at': 'เวลาที่สร้างเรคคอร์ด (UTC)',
   'messages.updated_at': 'เวลาที่แก้ไขล่าสุด (UTC) เปลี่ยนเมื่อสถานะการส่งเปลี่ยน',
 
@@ -170,6 +180,7 @@ const COLUMNS = {
   'ai_suggestions.requested_by': 'ผู้กดขอคำแนะนำ บังคับ เพราะระบบไม่สร้างเองอัตโนมัติ (A27)',
   'ai_suggestions.decided_by': 'ผู้อนุมัติหรือปฏิเสธ · บังคับเมื่อ `status` ไม่ใช่ `proposed`',
   'ai_suggestions.decided_at': 'เวลาที่ตัดสินใจ (UTC) · บังคับคู่กับ `decided_by`',
+  'ai_suggestions.lead_data_json': 'lead ณ เวลาที่สร้างคำแนะนำ · เสริมกับ `context_snapshot` ที่เก็บสิ่งที่โมเดลเห็นจริง',
   'ai_suggestions.created_at': 'เวลาที่สร้างคำแนะนำ (UTC)',
   'ai_suggestions.updated_at': 'เวลาที่แก้ไขล่าสุด (UTC)',
 
@@ -191,20 +202,21 @@ const COLUMNS = {
   'line_webhook_events.created_at': 'เวลาที่สร้างเรคคอร์ด (UTC)',
   'line_webhook_events.updated_at': 'เวลาที่แก้ไขล่าสุด (UTC)',
 
-  'field_change_log.id': 'รหัสรายการ เรียงตามลำดับการเขียน',
-  'field_change_log.entity_type': 'ชนิดของเรคคอร์ดที่เปลี่ยน · ไม่ใช้ FK เพราะชี้ไปได้หลายตาราง',
-  'field_change_log.entity_id': 'รหัสของเรคคอร์ดที่เปลี่ยน',
-  'field_change_log.field': 'ชื่อคอลัมน์ที่เปลี่ยน',
-  'field_change_log.old_value': 'ค่าก่อนเปลี่ยน เก็บเป็นข้อความทุกชนิดข้อมูล',
-  'field_change_log.new_value': 'ค่าหลังเปลี่ยน',
-  'field_change_log.changed_by': 'ผู้แก้ไข · **ว่าง = ระบบเป็นผู้แก้** ใช้หลักเดียวกับ `activities.actor_id`',
-  'field_change_log.changed_at': 'เวลาที่เปลี่ยน (UTC) เป็นแกนที่ใช้ไล่ย้อนค่า',
-  'field_change_log.created_at': 'เวลาที่บันทึกลงฐานข้อมูล (UTC) ไม่มี `updated_at` เพราะเขียนอย่างเดียว',
+  'tbl_audit_history.id': 'รหัสรายการ เรียงตามลำดับการเขียน ใช้ตัดสินลำดับเมื่อเวลาเท่ากัน',
+  'tbl_audit_history.table_name': 'ตารางที่ถูกแก้ · เป็น ENUM เพื่อให้ฐานข้อมูลปฏิเสธชื่อตารางที่ไม่ได้ track',
+  'tbl_audit_history.entity_id': 'รหัสของเรคคอร์ดที่เปลี่ยน · ไม่ใช้ FK เพราะชี้ไปได้หลายตาราง',
+
+  'tbl_audit_history.action': '`update` แก้ไขปกติ · `soft_delete` ปิดใช้งาน · `restore` เปิดกลับ · แยกออกมาเพื่อให้หน้าจอตรวจสอบกรองการลบได้',
+  'tbl_audit_history.old_json': 'ค่าก่อนเปลี่ยน เฉพาะฟิลด์ที่เปลี่ยนจริงและอยู่ใน whitelist',
+  'tbl_audit_history.new_json': 'ค่าหลังเปลี่ยน มีชุดคีย์เดียวกับ `old_json`',
+  'tbl_audit_history.changed_by': 'ผู้แก้ไข · **ว่าง = ระบบเป็นผู้แก้** ใช้หลักเดียวกับ `activities.actor_id`',
+  'tbl_audit_history.changed_at': 'เวลาที่เปลี่ยน (UTC) ความละเอียดระดับมิลลิวินาที เพราะการแก้สองครั้งในวินาทีเดียวกันต้องแยกลำดับออกจากกันได้',
+  'tbl_audit_history.created_at': 'เวลาที่บันทึกลงฐานข้อมูล (UTC) ไม่มี `updated_at` เพราะเขียนอย่างเดียว',
 };
 
 const CHECKS = {
-  chk_field_change_actually_changed:
-    'ห้ามบันทึกรายการที่ค่าเดิมกับค่าใหม่เท่ากัน รวมถึงกรณีที่เป็น null ทั้งคู่ — ประวัติที่ไม่มีอะไรเปลี่ยนคือขยะที่ทำให้อ่านยาก',
+  chk_audit_actually_changed:
+    'ห้ามบันทึกรายการที่ `old_json` กับ `new_json` เหมือนกันทุกประการ — ประวัติที่ไม่มีอะไรเปลี่ยนคือขยะที่ทำให้อ่านยาก',
   chk_leads_triage_requires_no_owner:
     'lead ที่ไม่มีเจ้าของต้องติดธง triage และ lead ที่มีเจ้าของต้องไม่ติดธง — กันไม่ให้มีงานที่ไม่มีใครเห็น',
   chk_activities_stage_change_has_stages:

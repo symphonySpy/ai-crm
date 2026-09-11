@@ -44,6 +44,9 @@ module.exports = (sequelize) => {
       requested_by: { type: DataTypes.UUID, allowNull: false },
       decided_by: { type: DataTypes.UUID, allowNull: true },
       decided_at: { type: DataTypes.DATE, allowNull: true },
+      // The lead as it stood when this suggestion was generated. Complements
+      // context_snapshot, which records what the model was actually shown.
+      lead_data_json: { type: DataTypes.JSON, allowNull: true },
     },
     { sequelize, modelName: 'AiSuggestion', tableName: 'ai_suggestions' },
   );

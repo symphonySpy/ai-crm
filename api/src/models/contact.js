@@ -28,6 +28,10 @@ module.exports = (sequelize) => {
       line_user_id: { type: DataTypes.STRING(64), allowNull: true, unique: true },
       line_display_name: { type: DataTypes.STRING(160), allowNull: true },
       is_active: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true },
+      // The company this contact was linked to, as it stood at linking time. NOT the
+      // current company — that is always read by joining through company_id. Written
+      // only by lib/entity-snapshots.js.
+      company_master_json: { type: DataTypes.JSON, allowNull: true },
       created_by: { type: DataTypes.UUID, allowNull: true },
       updated_by: { type: DataTypes.UUID, allowNull: true },
     },

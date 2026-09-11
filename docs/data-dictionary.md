@@ -14,13 +14,13 @@ MySQL 8.0 · charset `utf8mb4` · collation `utf8mb4_unicode_ci` · เวลา
 |---|---|---:|---:|
 | `users` | ผู้ใช้งานระบบ คือพนักงานขายและผู้จัดการ ไม่ใช่ลูกค้า | 10 | 8 |
 | `companies` | บริษัทลูกค้า ใช้จัดกลุ่ม contact และ lead | 400 | 8 |
-| `contacts` | บุคคลที่ติดต่อ คือลูกค้าหรือผู้มุ่งหวังตัวจริง | 2,000 | 12 |
-| `leads` | โอกาสทางการขาย เป็นออบเจ็กต์แกนกลางของทั้งระบบ | 300 | 14 |
-| `activities` | บันทึกเหตุการณ์ทั้งหมดของ lead คือ audit trail ระดับธุรกิจ | 1,306 | 9 |
-| `messages` | ข้อความสนทนากับลูกค้าทั้งขาเข้าและขาออก | 392 | 15 |
-| `ai_suggestions` | ผลลัพธ์จาก AI copilot ที่ยังไม่ถือเป็นการกระทำจริง | 76 | 14 |
+| `contacts` | บุคคลที่ติดต่อ คือลูกค้าหรือผู้มุ่งหวังตัวจริง | 2,000 | 13 |
+| `leads` | โอกาสทางการขาย เป็นออบเจ็กต์แกนกลางของทั้งระบบ | 300 | 17 |
+| `activities` | บันทึกเหตุการณ์ทั้งหมดของ lead คือ audit trail ระดับธุรกิจ | 1,306 | 11 |
+| `messages` | ข้อความสนทนากับลูกค้าทั้งขาเข้าและขาออก | 392 | 17 |
+| `ai_suggestions` | ผลลัพธ์จาก AI copilot ที่ยังไม่ถือเป็นการกระทำจริง | 76 | 15 |
 | `line_webhook_events` | บันทึกดิบของทุก event ที่ LINE ส่งเข้ามา | 238 | 12 |
-| `field_change_log` | ประวัติการเปลี่ยนแปลงของฟิลด์ที่เลือกไว้ ใช้ตอบคำถามว่าค่า ณ เวลานั้นคืออะไร | 2 | 9 |
+| `tbl_audit_history` | ประวัติการแก้ไขและการปิดใช้งานของทุกตารางที่ตรวจสอบ 1 การแก้ = 1 แถว | 6 | 9 |
 
 ---
 
@@ -98,6 +98,7 @@ MySQL 8.0 · charset `utf8mb4` · collation `utf8mb4_unicode_ci` · เวลา
 | `updated_by` | char(36) (UUID) | ✓ |  | FK → `users.id` (del: SET NULL) | ผู้แก้ไขล่าสุด |
 | `created_at` | datetime | — |  |  | เวลาที่สร้างเรคคอร์ด (UTC) |
 | `updated_at` | datetime | — |  |  | เวลาที่แก้ไขล่าสุด (UTC) |
+| `company_master_json` | json | ✓ |  |  | ข้อมูลบริษัท ณ เวลาที่ผูก contact เข้ากับบริษัทนี้ · **ไม่ใช่ค่าปัจจุบัน** ค่าปัจจุบันอ่านจากการ join ผ่าน `company_id` เสมอ · ระบบเติมเองผ่าน hook เท่านั้น (A17) |
 
 **ดัชนี**
 
@@ -134,6 +135,9 @@ MySQL 8.0 · charset `utf8mb4` · collation `utf8mb4_unicode_ci` · เวลา
 | `updated_by` | char(36) (UUID) | ✓ |  | FK → `users.id` (del: SET NULL) | ผู้แก้ไขล่าสุด |
 | `created_at` | datetime | — |  |  | เวลาที่สร้างเรคคอร์ด (UTC) |
 | `updated_at` | datetime | — |  |  | เวลาที่แก้ไขล่าสุด (UTC) |
+| `contact_data_json` | json | ✓ |  |  | ผู้ติดต่อ ณ เวลาที่ผูกกับ lead นี้ · ระบบเติมเองผ่าน hook (A17) |
+| `company_data_json` | json | ✓ |  |  | บริษัท ณ เวลาที่ผูกกับ lead นี้ |
+| `owner_data_json` | json | ✓ |  |  | เจ้าของ lead ณ เวลาที่มอบหมาย · เปลี่ยนตามเมื่อเปลี่ยนเจ้าของ |
 
 **CHECK constraints**
 
@@ -174,6 +178,8 @@ MySQL 8.0 · charset `utf8mb4` · collation `utf8mb4_unicode_ci` · เวลา
 | `note` | text | ✓ |  |  | บันทึกข้อความของพนักงานขาย |
 | `occurred_at` | datetime | — |  |  | เวลาที่เหตุการณ์เกิดขึ้นจริง (UTC) ใช้เรียง timeline |
 | `created_at` | datetime | — |  |  | เวลาที่บันทึกลงฐานข้อมูล (UTC) ไม่มี `updated_at` เพราะตารางนี้เขียนอย่างเดียว |
+| `lead_data_json` | json | ✓ |  |  | lead ณ เวลาที่เหตุการณ์เกิด · บันทึกครั้งเดียวตอนสร้าง ไม่เปลี่ยนอีก |
+| `actor_data_json` | json | ✓ |  |  | ผู้กระทำ ณ เวลานั้น · ว่างเมื่อระบบเป็นผู้กระทำ |
 
 **CHECK constraints**
 
@@ -214,6 +220,8 @@ MySQL 8.0 · charset `utf8mb4` · collation `utf8mb4_unicode_ci` · เวลา
 | `sent_at` | datetime | ✓ |  |  | เวลาที่ส่งสำเร็จ (UTC) |
 | `created_at` | datetime | — |  |  | เวลาที่สร้างเรคคอร์ด (UTC) |
 | `updated_at` | datetime | — |  |  | เวลาที่แก้ไขล่าสุด (UTC) เปลี่ยนเมื่อสถานะการส่งเปลี่ยน |
+| `lead_data_json` | json | ✓ |  |  | lead ณ เวลาที่บันทึกข้อความ · บันทึกครั้งเดียวตอนสร้าง |
+| `contact_data_json` | json | ✓ |  |  | ผู้ติดต่อ ณ เวลาที่บันทึกข้อความ |
 
 **CHECK constraints**
 
@@ -260,6 +268,7 @@ MySQL 8.0 · charset `utf8mb4` · collation `utf8mb4_unicode_ci` · เวลา
 | `decided_at` | datetime | ✓ |  |  | เวลาที่ตัดสินใจ (UTC) · บังคับคู่กับ `decided_by` |
 | `created_at` | datetime | — |  |  | เวลาที่สร้างคำแนะนำ (UTC) |
 | `updated_at` | datetime | — |  |  | เวลาที่แก้ไขล่าสุด (UTC) |
+| `lead_data_json` | json | ✓ |  |  | lead ณ เวลาที่สร้างคำแนะนำ · เสริมกับ `context_snapshot` ที่เก็บสิ่งที่โมเดลเห็นจริง |
 
 **CHECK constraints**
 
@@ -316,38 +325,38 @@ MySQL 8.0 · charset `utf8mb4` · collation `utf8mb4_unicode_ci` · เวลา
 
 ---
 
-## `field_change_log`
+## `tbl_audit_history`
 
-ประวัติการเปลี่ยนแปลงของฟิลด์ที่เลือกไว้ ใช้ตอบคำถามว่าค่า ณ เวลานั้นคืออะไร
+ประวัติการแก้ไขและการปิดใช้งานของทุกตารางที่ตรวจสอบ 1 การแก้ = 1 แถว
 
-> ค่าปัจจุบันอ่านจากตารางต้นทางเสมอ ตารางนี้เก็บเฉพาะ**การเปลี่ยนแปลง** ไม่ใช่สำเนาทั้งก้อน (A16) การอ่านค่าย้อนหลังคือการไล่ย้อนรายการที่เกิดหลังเวลาที่สนใจ รายการฟิลด์ที่บันทึกกำหนดไว้ใน `constants/tracked-fields.js`
+> บอกครบว่าแก้ตารางไหน แถวไหน เปลี่ยนจากอะไรเป็นอะไร ใครแก้ เมื่อไร (A16) เก็บเฉพาะคอลัมน์ที่เปลี่ยนจริง ไม่ใช่ทั้งแถว แก้กี่ฟิลด์พร้อมกันก็ได้แถวเดียว การอ่านค่าย้อนหลังคือไล่ย้อนรายการที่เกิดหลังเวลาที่สนใจ · `activities` ไม่อยู่ในรายการเพราะเขียนอย่างเดียวอยู่แล้ว ตัวมันเองคือประวัติ
 
 | คอลัมน์ | ชนิด | ว่างได้ | ค่าเริ่มต้น | คีย์ | คำอธิบาย |
 |---|---|:---:|---|---|---|
-| `id` | bigint unsigned | — |  | PK | รหัสรายการ เรียงตามลำดับการเขียน |
-| `entity_type` | enum: `company` · `contact` · `lead` | — |  |  | ชนิดของเรคคอร์ดที่เปลี่ยน · ไม่ใช้ FK เพราะชี้ไปได้หลายตาราง |
-| `entity_id` | char(36) (UUID) | — |  |  | รหัสของเรคคอร์ดที่เปลี่ยน |
-| `field` | varchar(64) | — |  |  | ชื่อคอลัมน์ที่เปลี่ยน |
-| `old_value` | text | ✓ |  |  | ค่าก่อนเปลี่ยน เก็บเป็นข้อความทุกชนิดข้อมูล |
-| `new_value` | text | ✓ |  |  | ค่าหลังเปลี่ยน |
+| `id` | bigint unsigned | — |  | PK | รหัสรายการ เรียงตามลำดับการเขียน ใช้ตัดสินลำดับเมื่อเวลาเท่ากัน |
+| `table_name` | enum: `users` · `companies` · `contacts` · `leads` · `messages` · `ai_suggestions` · `line_webhook_events` | — |  |  | ตารางที่ถูกแก้ · เป็น ENUM เพื่อให้ฐานข้อมูลปฏิเสธชื่อตารางที่ไม่ได้ track |
+| `entity_id` | varchar(64) | — |  |  | รหัสของเรคคอร์ดที่เปลี่ยน · ไม่ใช้ FK เพราะชี้ไปได้หลายตาราง |
+| `action` | enum: `update` · `soft_delete` · `restore` | — | `update` |  | `update` แก้ไขปกติ · `soft_delete` ปิดใช้งาน · `restore` เปิดกลับ · แยกออกมาเพื่อให้หน้าจอตรวจสอบกรองการลบได้ |
+| `old_json` | json | — |  |  | ค่าก่อนเปลี่ยน เฉพาะฟิลด์ที่เปลี่ยนจริงและอยู่ใน whitelist |
+| `new_json` | json | — |  |  | ค่าหลังเปลี่ยน มีชุดคีย์เดียวกับ `old_json` |
 | `changed_by` | char(36) (UUID) | ✓ |  | FK → `users.id` (del: RESTRICT) | ผู้แก้ไข · **ว่าง = ระบบเป็นผู้แก้** ใช้หลักเดียวกับ `activities.actor_id` |
-| `changed_at` | datetime | — |  |  | เวลาที่เปลี่ยน (UTC) เป็นแกนที่ใช้ไล่ย้อนค่า |
+| `changed_at` | datetime(3) | — |  |  | เวลาที่เปลี่ยน (UTC) ความละเอียดระดับมิลลิวินาที เพราะการแก้สองครั้งในวินาทีเดียวกันต้องแยกลำดับออกจากกันได้ |
 | `created_at` | datetime | — |  |  | เวลาที่บันทึกลงฐานข้อมูล (UTC) ไม่มี `updated_at` เพราะเขียนอย่างเดียว |
 
 **CHECK constraints**
 
-- `chk_field_change_actually_changed` — ห้ามบันทึกรายการที่ค่าเดิมกับค่าใหม่เท่ากัน รวมถึงกรณีที่เป็น null ทั้งคู่ — ประวัติที่ไม่มีอะไรเปลี่ยนคือขยะที่ทำให้อ่านยาก
+- `chk_audit_actually_changed` — ห้ามบันทึกรายการที่ `old_json` กับ `new_json` เหมือนกันทุกประการ — ประวัติที่ไม่มีอะไรเปลี่ยนคือขยะที่ทำให้อ่านยาก
   ```sql
-  (not((`old_value` <=> `new_value`)))
+  (cast(`old_json` as char charset utf8mb4) <> cast(`new_json` as char charset utf8mb4))
   ```
 
 **ดัชนี**
 
 | ชื่อ | คอลัมน์ | unique |
 |---|---|:---:|
-| `changed_by` | `changed_by` | — |
-| `idx_field_change_entity` | `entity_type`, `entity_id`, `changed_at` | — |
-| `idx_field_change_field` | `entity_type`, `field`, `changed_at` | — |
+| `idx_audit_action` | `action`, `changed_at` | — |
+| `idx_audit_actor` | `changed_by`, `changed_at` | — |
+| `idx_audit_entity` | `table_name`, `entity_id`, `changed_at` | — |
 
 ---
 

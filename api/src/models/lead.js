@@ -38,6 +38,11 @@ module.exports = (sequelize) => {
       source: { type: DataTypes.ENUM(...LEAD_SOURCES), allowNull: false, defaultValue: 'manual' },
       needs_triage: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
       last_contact_at: { type: DataTypes.DATE, allowNull: true },
+      // Related records as of assignment. Written only by lib/entity-snapshots.js;
+      // current values always come from the associations above.
+      contact_data_json: { type: DataTypes.JSON, allowNull: true },
+      company_data_json: { type: DataTypes.JSON, allowNull: true },
+      owner_data_json: { type: DataTypes.JSON, allowNull: true },
       created_by: { type: DataTypes.UUID, allowNull: true },
       updated_by: { type: DataTypes.UUID, allowNull: true },
     },

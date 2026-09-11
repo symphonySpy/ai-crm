@@ -13,6 +13,10 @@
 // loudly instead of quietly creating data the application could never have made.
 
 const bcrypt = require('bcryptjs');
+// Same builders the runtime hooks use, so seeded snapshots are shaped exactly like the
+// ones the application produces. bulkInsert bypasses model hooks, so without this the
+// seed would contain rows no code path could ever create.
+const { companyJson, contactJson, userJson, leadJson } = require('../lib/entity-snapshots');
 
 // --- deterministic randomness -------------------------------------------------
 
@@ -215,9 +219,14 @@ module.exports = {
       const hasLine = chance(0.17);
       const createdAt = daysAgo(randInt(1, 180));
       const name = thaiName();
+      // bulkInsert bypasses model hooks, so the company snapshot that
+      // lib/company-snapshot.js would normally capture has to be written explicitly
+      // here. Leaving it null would produce seed data no code path could ever create.
+      const company = hasCompany ? pick(companies) : null;
       contacts.push({
         id: uuid(),
-        company_id: hasCompany ? pick(companies).id : null,
+        company_id: company ? company.id : null,
+        company_master_json: company ? JSON.stringify(companyJson(company)) : null,
         name,
         phone: chance(0.8) ? phone() : null,
         email: chance(0.55) ? `contact${i}@example.co.th` : null,
@@ -258,11 +267,18 @@ module.exports = {
         // would be a data bug, not a realistic pipeline.
         const untriaged = stage === 'New' && fromLine && chance(0.28);
         const createdAt = daysAgo(randInt(stage === 'New' ? 0 : 5, stage === 'New' ? 21 : 88));
+        const owner = untriaged ? null : pick(salesUsers);
+        const company = contact.company_id
+          ? companies.find((c) => c.id === contact.company_id)
+          : null;
         leads.push({
           id: uuid(),
           contact_id: contact.id,
           company_id: contact.company_id,
-          owner_id: untriaged ? null : pick(salesUsers).id,
+          owner_id: owner ? owner.id : null,
+          contact_data_json: JSON.stringify(contactJson(contact)),
+          company_data_json: company ? JSON.stringify(companyJson(company)) : null,
+          owner_data_json: owner ? JSON.stringify(userJson(owner)) : null,
           title: pick(LEAD_TITLES),
           stage,
           value_thb:
@@ -512,6 +528,29 @@ module.exports = {
           created_at: createdAt,
         });
       }
+    }
+
+    // Fill the snapshot columns the model hooks would normally write. Done as a pass
+    // over the finished arrays rather than inline, so the generation logic above stays
+    // readable and there is exactly one place that knows the snapshot shape.
+    const usersById = new Map(users.map((u) => [u.id, u]));
+    const contactsById = new Map(contacts.map((c) => [c.id, c]));
+    const leadsById = new Map(leads.map((l) => [l.id, l]));
+    const snap = (builder, map, id) => {
+      const row = id ? map.get(id) : null;
+      return row ? JSON.stringify(builder(row)) : null;
+    };
+
+    for (const a of activities) {
+      a.lead_data_json = snap(leadJson, leadsById, a.lead_id);
+      a.actor_data_json = snap(userJson, usersById, a.actor_id);
+    }
+    for (const m of messages) {
+      m.lead_data_json = snap(leadJson, leadsById, m.lead_id);
+      m.contact_data_json = snap(contactJson, contactsById, m.contact_id);
+    }
+    for (const sg of aiSuggestions) {
+      sg.lead_data_json = snap(leadJson, leadsById, sg.lead_id);
     }
 
     // Messages must exist before the webhook events that point at them.
