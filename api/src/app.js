@@ -4,6 +4,7 @@ const express = require('express');
 const cookieParser = require('cookie-parser');
 const db = require('./models');
 const { requestContext } = require('./middleware/request-context');
+const { buildCors } = require('./middleware/cors');
 const { restLog, captureMount } = require('./middleware/rest-log');
 const { notFoundHandler, errorHandler } = require('./middleware/errors');
 const { attachUser, requireAuth } = require('./middleware/auth');
@@ -25,6 +26,10 @@ function createApp() {
   app.disable('x-powered-by');
 
   app.use(requestContext);
+
+  // Allowlisted cross-origin access. Mounted early so a rejected preflight never
+  // reaches a route. See middleware/cors.js for why the default is to allow nothing.
+  app.use(buildCors());
 
   if (!process.env.SESSION_SECRET) {
     throw new Error('SESSION_SECRET is required: session cookies cannot be signed without it');
