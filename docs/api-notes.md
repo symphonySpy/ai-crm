@@ -1,0 +1,229 @@
+# API notes
+
+รายการ endpoint รูปแบบคำตอบ และรหัสข้อผิดพลาดทั้งหมดที่ระบบคืนได้
+เขียนจากโค้ดจริง ไม่ใช่จากที่ตั้งใจให้เป็น
+
+**Base URL (ระบบสาธิต):** `https://ai-crm-production-dee4.up.railway.app`
+
+---
+
+## รูปแบบคำตอบ
+
+ทุก endpoint ตอบด้วยรูปแบบเดียวกัน ไม่ว่าจะสำเร็จหรือล้มเหลว
+
+**สำเร็จ**
+
+```json
+{
+  "success": true,
+  "code": 200,
+  "message": "Found 40 lead(s)",
+  "data": { "rows": [], "pagination": { "page": 1, "limit": 25, "total": 40, "pages": 2 } }
+}
+```
+
+**ล้มเหลว**
+
+```json
+{
+  "success": false,
+  "code": 400,
+  "message": "Invalid request query",
+  "errors": [{ "field": "limit", "message": "Number must be less than or equal to 100" }],
+  "requestId": "02219b36-6167-4fac-8f49-739f5f2c6c8c",
+  "data": null
+}
+```
+
+**กติกาสามข้อที่ client พึ่งได้เสมอ**
+
+- `success` เป็นตัวเดียวที่ต้องเช็ค — โครงเหมือนกันทั้งสองกรณี ต่างแค่ `data` กลายเป็น `errors`
+- `data` มีเสมอ เป็น `null` เมื่อไม่มีอะไรส่ง — `body.data` จึงไม่มีทางทำให้เกิด error ตอนอ่าน
+- `code` ซ้ำกับ HTTP status ในตัว body โดยตั้งใจ เพราะ response ที่ผ่าน proxy, queue หรือ log
+  มักถูกอ่านโดยไม่เห็น status line
+
+**ข้อยกเว้นเดียว:** `204 No Content` (logout) ไม่มี body ตามสเปกของ HTTP
+
+`requestId` ปรากฏเฉพาะตอนล้มเหลว และตรงกับ header `x-request-id` กับคอลัมน์ `request_id`
+ใน `rest_log` — ใช้ตามรอยคำขอเดียวกันข้ามทั้งสามที่
+
+---
+
+## รหัสข้อผิดพลาด
+
+| รหัส | เมื่อไร | ตัวอย่างข้อความ | client ควรทำอะไร |
+|---|---|---|---|
+| `200` | สำเร็จ | — | — |
+| `201` | สร้างเรคคอร์ดใหม่แล้ว | `Lead created` | — |
+| `204` | สำเร็จ ไม่มีเนื้อหา (logout) | — | อย่าพยายาม parse body |
+| `400` | ข้อมูลที่ส่งมาไม่ผ่านการตรวจ หรือผิดกฎธุรกิจระดับคำขอ | `Invalid request query` · `Lead is already at stage "Proposal"` | แก้ข้อมูลแล้วส่งใหม่ · ดู `errors` ว่าฟิลด์ไหน |
+| `401` | ยังไม่ได้ล็อกอิน session หมดอายุ หรือรหัสผ่านผิด | `Authentication required` · `Invalid email or password` | พาไปหน้าล็อกอิน |
+| `403` | ล็อกอินแล้วแต่ไม่มีสิทธิ์ | `You can only send messages on leads you own` | แสดงเหตุผล อย่าพาไปล็อกอินใหม่ |
+| `404` | ไม่พบเรคคอร์ด หรือไม่มี route นั้น | `Lead not found` | — |
+| `409` | ชนกับข้อมูลที่มีอยู่ | `Already exists: email` | บอกว่าค่าไหนซ้ำ |
+| `422` | **ฐานข้อมูลปฏิเสธเพราะผิดกฎธุรกิจ** | ดูหัวข้อถัดไป | เป็นบั๊กของ client หรือของเรา ไม่ใช่ของผู้ใช้ |
+| `429` | เรียกถี่เกินกำหนด | `Too many login attempts.` · `ขอคำแนะนำถี่เกินไป` | รอแล้วลองใหม่ ดู header `RateLimit-Reset` |
+| `500` | ข้อผิดพลาดที่ไม่คาดคิด หรือระบบตั้งค่าไม่ครบ | `Something went wrong.` · `Webhook not configured` | แจ้ง `requestId` ให้ผู้ดูแลระบบ |
+| `503` | `/ready` เท่านั้น — ต่อฐานข้อมูลไม่ได้ | `Database is unreachable` | แพลตฟอร์มไม่ควรส่ง traffic มา |
+
+### ทำไม `401` กับ `403` ต้องแยกกัน
+
+`401` แปลว่า **ไม่รู้ว่าคุณเป็นใคร** — ล็อกอินแล้วจะแก้ได้
+`403` แปลว่า **รู้ว่าคุณเป็นใคร และคำตอบคือไม่ได้** — ล็อกอินใหม่กี่ครั้งก็ไม่เปลี่ยน
+
+ถ้า client พาผู้ใช้ไปหน้าล็อกอินตอนเจอ `403` ผู้ใช้จะติดอยู่ในวงจรที่ล็อกอินสำเร็จแล้ว
+แต่ยังทำสิ่งนั้นไม่ได้ โดยไม่มีอะไรบอกว่าทำไม
+
+### ทำไม `422` ไม่ใช่ `400`
+
+`400` คือ "ข้อมูลที่คุณส่งมาไม่ถูกต้อง" — ผู้ใช้แก้ได้
+`422` คือ "ข้อมูลถูกรูปแบบ แต่**ฐานข้อมูลปฏิเสธเพราะผิดกฎธุรกิจ**"
+
+กฎเหล่านี้เป็น CHECK constraint ที่บังคับสิ่งที่ควรเป็นไปไม่ได้อยู่แล้ว เช่นข้อความขาออก
+ที่ไม่มีผู้อนุมัติ หรือ lead ที่ไม่มีเจ้าของแต่ไม่ติดธงรอคัดกรอง **การได้ `422`
+แปลว่ามีบั๊กอยู่ที่ไหนสักแห่ง ไม่ใช่ผู้ใช้กรอกผิด** จึงต้องแยกออกจาก `400` เพื่อให้
+เห็นความต่างนี้ใน log และใน `rest_log`
+
+คำตอบจะระบุชื่อ constraint ที่ถูกละเมิด:
+
+```json
+{
+  "success": false,
+  "code": 422,
+  "message": "The database rejected this write because it breaks a business rule.",
+  "errors": [{ "constraint": "chk_messages_outbound_requires_approver" }]
+}
+```
+
+| constraint | กฎที่บังคับ |
+|---|---|
+| `chk_messages_outbound_requires_approver` | ข้อความขาออกต้องมีผู้อนุมัติ |
+| `chk_messages_direction_status` | ขาเข้าต้องเป็น `received` · ขาออกเป็น `pending`/`sent`/`failed` |
+| `chk_ai_suggestions_decision_is_attributed` | ที่ไม่ใช่ `proposed` ต้องมีทั้งผู้ตัดสินและเวลา |
+| `chk_leads_triage_requires_no_owner` | ไม่มีเจ้าของต้องติดธง triage และกลับกัน |
+| `chk_activities_stage_change_has_stages` | การเปลี่ยน stage ต้องมีทั้งต้นทางและปลายทาง |
+| `chk_line_events_processed_has_timestamp` | event ที่ประมวลผลแล้วต้องมีเวลากำกับ |
+
+### `500` ที่ไม่ใช่บั๊ก
+
+`POST /webhooks/line` ตอบ `500 Webhook not configured` เมื่อยังไม่ได้ตั้ง
+`LINE_CHANNEL_SECRET` — แยกจาก `401` โดยตั้งใจ เพราะ **การขาดค่าตั้งค่าคือความผิดพลาด
+ฝั่งการติดตั้ง ไม่ใช่คำขอที่ไม่ถูกต้อง** การรายงานเป็น `401` จะทำให้คนไล่หาปัญหา
+ที่ลายเซ็นทั้งที่ต้นเหตุอยู่ที่ตัวแปรสภาพแวดล้อม
+
+ส่วน `500 Something went wrong.` ไม่เปิดเผยรายละเอียดใด ๆ รายละเอียดจริงอยู่ใน log
+คู่กับ `requestId` เดียวกัน — stack trace ใน response body คือของขวัญสำหรับคนที่กำลังสำรวจช่องโหว่
+
+---
+
+## การยืนยันตัวตน
+
+Session เป็น cookie ที่ลงลายเซ็น (`httpOnly`, `sameSite=lax`, `secure` ตอน production)
+อายุ 12 ชั่วโมง ไม่ต้องส่ง header ใด ๆ เพิ่ม — เบราว์เซอร์ส่ง cookie ให้เอง
+
+ผู้ใช้ถูกอ่านจากฐานข้อมูล**ทุกคำขอ** ไม่ได้เชื่อค่าใน cookie ดังนั้นบัญชีที่ถูกปิดใช้งาน
+จะใช้งานไม่ได้ทันที ไม่ต้องรอ cookie หมดอายุ
+
+**ข้อจำกัดที่รู้อยู่:** ไม่มี session store ฝั่งเซิร์ฟเวอร์ จึงยกเลิก session ก่อนหมดอายุไม่ได้
+การ logout ล้าง cookie บนเบราว์เซอร์นั้นเท่านั้น (A1)
+
+---
+
+## Endpoints
+
+### Auth — `/api/auth`
+
+| Method | Path | คำอธิบาย |
+|---|---|---|
+| `POST` | `/login` | `{ email, password }` → ตั้ง session cookie · จำกัด 10 ครั้ง/15 นาที/IP |
+| `POST` | `/logout` | ล้าง cookie · ตอบ `204` |
+| `GET` | `/me` | ผู้ใช้ปัจจุบัน |
+
+### Leads — `/api/leads`
+
+| Method | Path | คำอธิบาย |
+|---|---|---|
+| `GET` | `/` | ค้นหา กรอง เรียง แบ่งหน้า |
+| `GET` | `/summary` | จำนวนและมูลค่าต่อ stage + จำนวนที่รอคัดกรอง |
+| `GET` | `/:id` | รายละเอียด + timeline + บทสนทนา + คำแนะนำ AI |
+| `POST` | `/` | สร้าง lead |
+| `PATCH` | `/:id/stage` | เปลี่ยน stage · บันทึกผู้ทำและต้นทางปลายทาง |
+| `PATCH` | `/:id/owner` | มอบหมายเจ้าของ · ธง triage เปลี่ยนตาม |
+| `POST` | `/:id/notes` | เพิ่มบันทึกลง timeline |
+
+**query ของ `GET /`**
+
+| พารามิเตอร์ | ค่า |
+|---|---|
+| `q` | ค้นในหัวข้อ lead · ชื่อผู้ติดต่อ · ชื่อบริษัท |
+| `stage` | `New` `Qualified` `Proposal` `Won` `Lost` |
+| `source` | `website` `manual` `line` |
+| `ownerId` | UUID |
+| `needsTriage` | `true` `false` |
+| `page` `limit` | เริ่มที่ 1 · `limit` สูงสุด **100** |
+| `sort` | `created_at` `value_thb` `last_contact_at` |
+| `order` | `asc` `desc` |
+
+> `limit` ถูกจำกัดที่ 100 โดยตั้งใจ — ไม่จำกัดคือเปิดให้ใครก็ได้พิมพ์ `?limit=999999`
+> ใส่ตารางที่มีข้อมูลหลายพันแถว
+
+### ข้อความและคำแนะนำ AI — `/api`
+
+| Method | Path | คำอธิบาย |
+|---|---|---|
+| `POST` | `/leads/:id/ai-suggestions` | ขอคำแนะนำ · จำกัด 20 ครั้ง/5 นาที/ผู้ใช้ |
+| `GET` | `/leads/:id/ai-suggestions` | คำแนะนำของ lead นี้ ใหม่สุดก่อน |
+| `POST` | `/leads/:id/messages` | **อนุมัติและส่ง** `{ text, suggestion_id? }` |
+| `POST` | `/ai-suggestions/:id/reject` | ปฏิเสธร่าง ไม่ส่งอะไร |
+
+**สองข้อที่ต่างจากที่คาด และตั้งใจให้เป็นแบบนั้น**
+
+`POST /leads/:id/ai-suggestions` ตอบ **`201` เสมอ** แม้โมเดลจะล่ม เพราะคำแนะนำถูกสร้าง
+และบันทึกจริง เพียงแต่มาจากโหมดสำรอง — ดูที่ `data.suggestion.degraded`
+ถ้าตอบเป็น error จะเป็นการชวนให้ client ลองใหม่เข้าไปในเหตุขัดข้องที่ยังไม่จบ
+
+`POST /leads/:id/messages` ตอบ **`201` แม้ส่งไม่สำเร็จ** เพราะข้อความมีอยู่จริงและอยู่บน
+timeline แล้ว การที่ LINE ยังไม่รับเป็นคุณสมบัติของข้อความ (`send_status`) ไม่ใช่ของคำขอ —
+ถ้าตอบ error จะชวนให้ client ยิงซ้ำ แล้วเกิดข้อความที่สองสำหรับเจตนาเดียวกัน
+
+### Directory — `/api`
+
+| Method | Path | คำอธิบาย |
+|---|---|---|
+| `GET` | `/contacts` `/contacts/:id` | ค้นชื่อ เบอร์ อีเมล |
+| `GET` | `/companies` `/companies/:id` | ค้นชื่อ อุตสาหกรรม |
+| `GET` | `/users` | ผู้ใช้ที่ยังทำงานอยู่ สำหรับ dropdown เจ้าของ |
+
+รายการที่ถูกปิดใช้งานถูกซ่อนโดยค่าเริ่มต้น ใช้ `?includeInactive=true` เพื่อให้แสดง (A14)
+
+### Webhook และ health
+
+| Method | Path | คำอธิบาย |
+|---|---|---|
+| `POST` | `/webhooks/line` | ดู [line-integration.md](line-integration.md) |
+| `GET` | `/health` | มีชีวิตอยู่ · **ไม่แตะฐานข้อมูล** |
+| `GET` | `/ready` | พร้อมรับงาน · ตอบ `503` เมื่อต่อฐานข้อมูลไม่ได้ |
+
+> แยกกันเพราะ health check ที่ล้มเวลาฐานข้อมูลสะดุดชั่วขณะ จะชวนให้แพลตฟอร์มรีสตาร์ต
+> โปรเซสที่ทำงานปกติอยู่
+
+---
+
+## ทุกคำขอถูกบันทึก
+
+ทุกการเรียกลง `rest_log` พร้อม request, response, status, เวลาที่ใช้ และผู้เรียก
+โดยปิดบังค่าที่อ่อนไหวก่อนบันทึก (A42)
+
+```sql
+SELECT request_date, method, route, status_code, duration_ms
+FROM rest_log
+WHERE status_code >= 400
+ORDER BY id DESC
+LIMIT 20;
+```
+
+ถ้ามีผู้ใช้แจ้งปัญหาพร้อม `requestId` หาแถวนั้นได้ทันที:
+
+```sql
+SELECT * FROM rest_log WHERE request_id = '<requestId>';
+```
