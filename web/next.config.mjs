@@ -10,6 +10,10 @@
 // Relaxing it to SameSite=None to compensate would weaken the cookie for every user in
 // order to work around a deployment detail. Proxying keeps the cookie first-party and
 // removes CORS from the picture entirely.
+// Read when `next build` runs, not per request: Next compiles rewrites into the routes
+// manifest at build time. Changing API_BASE_URL therefore needs a redeploy — restarting
+// the service picks up the new value everywhere except here, which is a confusing half
+// hour if you do not know it.
 const apiBase = process.env.API_BASE_URL || 'http://localhost:4000';
 
 const nextConfig = {

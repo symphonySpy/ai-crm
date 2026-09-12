@@ -195,6 +195,36 @@ npm run deploy:seed
 
 ---
 
+## 5. ติดตั้งเว็บ (Next.js) เป็นอีก service
+
+เว็บกับ API อยู่ repo เดียวกัน แต่เป็นคนละ service บน Railway เพราะ build คนละแบบ
+และคนละรอบการปล่อย
+
+1. ในโปรเจกต์เดิม กด **New → GitHub Repo** เลือก `symphonySpy/ai-crm` อีกครั้ง
+2. ตั้ง **Root Directory** เป็น `web`
+3. **Variables** ตั้งค่าเดียว
+
+| ตัวแปร | ค่า |
+|---|---|
+| `API_BASE_URL` | `https://<โดเมนของ service API>` เช่น `https://ai-crm-production-dee4.up.railway.app` |
+
+4. **Settings → Networking → Generate Domain** เพื่อให้เว็บมี URL สาธารณะ
+
+`web/railway.json` กำหนด start command และ health check ที่ `/login` ไว้แล้ว
+
+### ทำไมไม่ต้องตั้ง CORS_ORIGINS
+
+เบราว์เซอร์คุยกับโดเมนของเว็บเท่านั้น ส่วน `/api` ถูก Next.js proxy ต่อไปยัง API
+จากฝั่งเซิร์ฟเวอร์ ซึ่งไม่ใช่คำขอข้ามโดเมนของเบราว์เซอร์ จึงไม่มี CORS เข้ามาเกี่ยวข้อง
+(A45) — ปล่อย `CORS_ORIGINS` ว่างไว้ตามเดิม
+
+### ข้อควรรู้: `API_BASE_URL` ถูกอ่านตอน build
+
+Next.js คอมไพล์ rewrites ลง routes manifest ตอน `next build` ไม่ได้อ่านใหม่ทุก request
+ถ้าแก้ค่านี้ **ต้อง redeploy** การกด restart อย่างเดียวจะไม่มีผลกับ proxy
+
+---
+
 ## สถานะที่ยืนยันแล้วหลังติดตั้ง
 
 | การทดสอบ | ผล |
