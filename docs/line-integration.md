@@ -32,7 +32,7 @@
 
 ### 3. ดูผลในระบบ
 
-เข้า https://ai-crm-production-dee4.up.railway.app ด้วยบัญชีสาธิตใน README
+เข้า https://ai-crm-production-dee4.up.railway.app ด้วยบัญชีสาธิต (ส่งแยกทางอีเมล)
 แล้วกรองด้วย **รอคัดกรอง (needs triage)** จะเห็น lead ที่เพิ่งถูกสร้างจากข้อความของคุณ
 
 ตรวจด้วย API ก็ได้:
@@ -40,7 +40,7 @@
 ```bash
 curl -s -c /tmp/c -X POST https://ai-crm-production-dee4.up.railway.app/api/auth/login \
   -H 'Content-Type: application/json' \
-  -d '{"email":"manager@demo.local","password":"DemoPass123!"}' > /dev/null
+  -d '{"email":"<อีเมลบัญชีสาธิต>","password":"<รหัสผ่าน>"}' > /dev/null
 
 curl -s -b /tmp/c \
   'https://ai-crm-production-dee4.up.railway.app/api/leads?needsTriage=true&source=line&limit=5'

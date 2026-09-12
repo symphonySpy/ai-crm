@@ -19,6 +19,7 @@
     "docs:erd": "node scripts/generate-erd.js",
     "docs": "npm run docs:datadict && npm run docs:erd",
     "logs:prune": "node scripts/prune-rest-log.js",
+    "demo:password": "node scripts/reset-demo-password.js",
     "messages:retry": "node scripts/retry-pending-messages.js",
     "deploy:migrate": "sequelize-cli db:migrate",
     "deploy:seed": "sequelize-cli db:seed:all",

@@ -12,6 +12,7 @@
 // message with no approver, an unowned lead not flagged for triage — the seed fails
 // loudly instead of quietly creating data the application could never have made.
 
+const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
 // Same builders the runtime hooks use, so seeded snapshots are shaped exactly like the
 // ones the application produces. bulkInsert bypasses model hooks, so without this the
@@ -150,9 +151,21 @@ const phone = () => `0${pick(['6', '8', '9'])}${String(randInt(0, 99999999)).pad
 
 module.exports = {
   async up(queryInterface) {
-    // A2: one shared password across the synthetic accounts. Documented in the README
-    // because this deployment holds nothing but generated data.
-    const passwordHash = await bcrypt.hash('DemoPass123!', 10);
+    // A2: one shared password across the synthetic accounts.
+    //
+    // It is NOT written in this file. A password committed to a repository is a
+    // password that stays valid long after the repository stops being private, and
+    // "it's only demo data" is the reasoning behind most of the credentials that end
+    // up in public history. Set SEED_PASSWORD to choose one; otherwise a random one is
+    // generated and printed once, here, and never stored anywhere else.
+    const password = process.env.SEED_PASSWORD || crypto.randomBytes(12).toString('base64url');
+    if (!process.env.SEED_PASSWORD) {
+      // eslint-disable-next-line no-console
+      console.log(`
+  Demo account password (shown once): ${password}
+`);
+    }
+    const passwordHash = await bcrypt.hash(password, 10);
     const stamp = (createdAt) => ({ created_at: createdAt, updated_at: createdAt });
 
     // --- users ----------------------------------------------------------------

@@ -35,11 +35,20 @@ const AUDITED_TABLES = [
 //                        every entry — and the audit row already records changed_by,
 //                        which is the same fact stated once.
 //
+// Both spellings of the timestamps are listed. `underscored: true` names the COLUMNS
+// created_at / updated_at, but the ATTRIBUTES stay createdAt / updatedAt, and this set
+// is consulted with attribute names. Listing only the snake_case form left updatedAt
+// looking auditable, which made the bulk-update guard reject writes that would not
+// have produced an audit entry anyway.
+//
 // The *_data_json and *_master_json snapshot columns are excluded dynamically (see
 // isAuditable): they are themselves point-in-time copies, and auditing a snapshot
 // produces a snapshot of a snapshot.
 const AUDIT_DENY_FIELDS = new Set([
   'password_hash',
+  'createdAt',
+  'updatedAt',
+  'deletedAt',
   'raw_payload',
   'payload',
   'context_snapshot',
