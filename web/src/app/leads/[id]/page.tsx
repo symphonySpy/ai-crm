@@ -3,40 +3,19 @@
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-import { api, ApiError, formatDateTime, formatTHB } from '@/lib/api';
-import type { Activity, AiSuggestion, Lead, Message, User } from '@/lib/types';
+import { ApiError, aiService, leadService, messageService } from '@/services';
+import { formatDateTime, formatTHB } from '@/lib/format';
+import { ACTIVITY_LABELS, CRITERION_LABELS, LEAD_STAGES, SYSTEM_ACTOR_LABEL } from '@/constants';
+import { useAuth } from '@/contexts/auth';
+import type { Activity, AiSuggestion, Lead, Message } from '@/lib/types';
 import { StageBadge, TriageBadge } from '@/components/StageBadge';
-import { TopBar } from '@/components/TopBar';
-
-const STAGES = ['New', 'Qualified', 'Proposal', 'Won', 'Lost'] as const;
-
-const ACTIVITY_LABEL: Record<string, string> = {
-  lead_created: 'สร้าง lead',
-  stage_changed: 'เปลี่ยนขั้น',
-  owner_changed: 'เปลี่ยนเจ้าของ',
-  note_added: 'เพิ่มบันทึก',
-  message_received: 'ได้รับข้อความ',
-  message_sent: 'ส่งข้อความ',
-  ai_suggestion_requested: 'ขอคำแนะนำจาก AI',
-  ai_suggestion_approved: 'อนุมัติคำแนะนำ',
-  ai_suggestion_rejected: 'ปฏิเสธคำแนะนำ',
-  contact_updated: 'แก้ไขผู้ติดต่อ',
-};
-
-const CRITERION_LABEL: Record<string, string> = {
-  recency: 'ความสดของการติดต่อ',
-  engagement: 'การตอบโต้',
-  budget_signal: 'สัญญาณงบประมาณ',
-  stage_progress: 'ความคืบหน้า',
-  deal_value: 'มูลค่าดีล',
-};
 
 export default function LeadDetailPage() {
   const router = useRouter();
   const params = useParams<{ id: string }>();
   const leadId = params.id;
 
-  const [user, setUser] = useState<User | null>(null);
+  const { user } = useAuth();
   const [lead, setLead] = useState<Lead | null>(null);
   const [activities, setActivities] = useState<Activity[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -64,7 +43,7 @@ export default function LeadDetailPage() {
 
   const load = useCallback(async () => {
     try {
-      const d = await api.lead(leadId);
+      const d = await leadService.detail(leadId);
       setLead(d.lead);
       setActivities(d.activities);
       setMessages(d.messages);
@@ -76,9 +55,8 @@ export default function LeadDetailPage() {
   }, [leadId, handleError]);
 
   useEffect(() => {
-    api.me().then((d) => setUser(d.user)).catch(handleError);
     load();
-  }, [load, handleError]);
+  }, [load]);
 
   async function run(key: string, fn: () => Promise<string | void>) {
     setBusy(key);
@@ -96,18 +74,15 @@ export default function LeadDetailPage() {
 
   if (!lead) {
     return (
-      <div className="shell">
-        <TopBar user={user} />
-        <main className="page">
-          {error ? (
-            <p className="notice notice-error" role="alert">
-              {error}
-            </p>
-          ) : (
-            <p className="muted">กำลังโหลด…</p>
-          )}
-        </main>
-      </div>
+      <main className="page">
+        {error ? (
+          <p className="notice notice-error" role="alert">
+            {error}
+          </p>
+        ) : (
+          <p className="muted">กำลังโหลด…</p>
+        )}
+      </main>
     );
   }
 
@@ -116,10 +91,7 @@ export default function LeadDetailPage() {
   const isOwner = user?.role === 'manager' || lead.owner?.id === user?.id;
 
   return (
-    <div className="shell">
-      <TopBar user={user} />
-
-      <main className="page stack" style={{ gap: 16 }}>
+    <main className="page stack" style={{ gap: 16 }}>
         <div>
           <Link href="/leads" className="small">
             ← กลับไปรายการ
@@ -174,12 +146,12 @@ export default function LeadDetailPage() {
                 disabled={busy === 'stage'}
                 onChange={(e) =>
                   run('stage', async () => {
-                    await api.changeStage(lead.id, e.target.value);
+                    await leadService.changeStage(lead.id, e.target.value);
                     return `เปลี่ยนขั้นเป็น ${e.target.value} แล้ว`;
                   })
                 }
               >
-                {STAGES.map((s) => (
+                {LEAD_STAGES.map((s) => (
                   <option key={s} value={s}>
                     {s}
                   </option>
@@ -193,7 +165,7 @@ export default function LeadDetailPage() {
                 disabled={busy === 'claim'}
                 onClick={() =>
                   run('claim', async () => {
-                    await api.assignOwner(lead.id, user!.id);
+                    await leadService.assignOwner(lead.id, user!.id);
                     return 'รับ lead นี้เป็นของคุณแล้ว';
                   })
                 }
@@ -256,7 +228,7 @@ export default function LeadDetailPage() {
                       onClick={() =>
                         run('send', async () => {
                           const text = reply.trim();
-                          await api.sendMessage(lead.id, text, replySuggestionId ?? undefined);
+                          await messageService.send(lead.id, text, replySuggestionId ?? undefined);
                           setReply('');
                           setReplySuggestionId(null);
                           return 'ส่งข้อความแล้ว';
@@ -282,7 +254,7 @@ export default function LeadDetailPage() {
                   disabled={busy === 'ai'}
                   onClick={() =>
                     run('ai', async () => {
-                      const d = await api.generateSuggestion(lead.id);
+                      const d = await aiService.generate(lead.id);
                       return d.suggestion.degraded
                         ? 'สร้างในโหมดสำรอง — ไม่มีร่างข้อความ'
                         : 'ได้คำแนะนำใหม่แล้ว';
@@ -318,7 +290,7 @@ export default function LeadDetailPage() {
                   <ul className="stack small" style={{ gap: 4, margin: 0, paddingLeft: 18 }}>
                     {latest.payload.score_reasons.map((r) => (
                       <li key={r.criterion}>
-                        <strong>{CRITERION_LABEL[r.criterion] ?? r.criterion}</strong>{' '}
+                        <strong>{CRITERION_LABELS[r.criterion] ?? r.criterion}</strong>{' '}
                         <span className="mono">{r.points}/20</span>
                         <span className="muted"> — {r.note}</span>
                       </li>
@@ -364,7 +336,7 @@ export default function LeadDetailPage() {
                             disabled={busy === 'reject'}
                             onClick={() =>
                               run('reject', async () => {
-                                await api.rejectSuggestion(latest.id);
+                                await aiService.reject(latest.id);
                                 return 'ปฏิเสธร่างแล้ว ไม่มีข้อความถูกส่ง';
                               })
                             }
@@ -407,7 +379,7 @@ export default function LeadDetailPage() {
                 disabled={!note.trim() || busy === 'note'}
                 onClick={() =>
                   run('note', async () => {
-                    await api.addNote(lead.id, note.trim());
+                    await leadService.addNote(lead.id, note.trim());
                     setNote('');
                     return 'เพิ่มบันทึกแล้ว';
                   })
@@ -423,7 +395,7 @@ export default function LeadDetailPage() {
                   <span className={`dot ${a.actor ? '' : 'system'}`} />
                   <div>
                     <div className="small">
-                      <strong>{ACTIVITY_LABEL[a.type] ?? a.type}</strong>
+                      <strong>{ACTIVITY_LABELS[a.type] ?? a.type}</strong>
                       {a.from_stage && a.to_stage && (
                         <span className="muted">
                           {' '}
@@ -437,7 +409,7 @@ export default function LeadDetailPage() {
                       </div>
                     )}
                     <div className="muted small">
-                      {formatDateTime(a.occurred_at)} · {a.actor?.name ?? 'ระบบ'}
+                      {formatDateTime(a.occurred_at)} · {a.actor?.name ?? SYSTEM_ACTOR_LABEL}
                     </div>
                   </div>
                 </li>
@@ -445,7 +417,6 @@ export default function LeadDetailPage() {
             </ul>
           </section>
         </div>
-      </main>
-    </div>
+    </main>
   );
 }

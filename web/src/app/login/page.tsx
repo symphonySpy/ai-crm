@@ -2,11 +2,13 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { api, ApiError } from '@/lib/api';
+import { ApiError, authService } from '@/services';
 
 export default function LoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState('manager@demo.local');
+  // Deliberately blank. Credentials for the demo accounts are sent separately and are
+  // not in this repository — a prefilled address is the same disclosure as printing it.
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -16,8 +18,16 @@ export default function LoginPage() {
     setBusy(true);
     setError(null);
     try {
-      await api.login(email, password);
-      router.replace('/leads');
+      await authService.login(email, password);
+      // middleware.ts puts the page they were trying to reach in ?next=, so a link to a
+      // specific lead still lands on that lead after signing in. Read from the URL
+      // rather than useSearchParams so this page needs no Suspense boundary.
+      const next = new URLSearchParams(window.location.search).get('next');
+      // Only a same-site path is accepted. Taking the value as given would turn this
+      // into an open redirect: ?next=https://evil.example lands the user somewhere else
+      // entirely, right after they typed their password.
+      const safe = next && next.startsWith('/') && !next.startsWith('//') ? next : '/leads';
+      router.replace(safe);
     } catch (err) {
       // The API answers identically for an unknown address and a wrong password, so
       // there is nothing more specific to show here — and showing more would be the leak.
@@ -69,12 +79,6 @@ export default function LoginPage() {
             {busy ? 'กำลังเข้าสู่ระบบ…' : 'เข้าสู่ระบบ'}
           </button>
         </form>
-
-        <p className="muted small" style={{ margin: 0 }}>
-          บัญชีสาธิต: <code>manager@demo.local</code> หรือ <code>sales@demo.local</code>
-          <br />
-          รหัสผ่านอยู่ใน README
-        </p>
       </div>
     </main>
   );
