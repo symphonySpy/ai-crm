@@ -25,7 +25,10 @@ export interface LeadListParams {
 export interface LeadDetail {
   lead: Lead;
   activities: Activity[];
+  /** The newest window of the conversation, oldest-to-newest. */
   messages: Message[];
+  /** True when older messages exist beyond this window; fetch them with messageService.older. */
+  hasOlderMessages: boolean;
   aiSuggestions: AiSuggestion[];
 }
 

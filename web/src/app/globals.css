@@ -157,7 +157,9 @@ td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: now
 .badge-triage { color: var(--stage-proposal); }
 
 /* --- conversation --------------------------------------------------------- */
-.thread { display: flex; flex-direction: column; gap: 8px; max-height: 460px; overflow-y: auto; }
+/* overflow-anchor: none — the page restores scroll position itself when older messages
+   are prepended; the browser's own anchoring would apply a second correction on top. */
+.thread { display: flex; flex-direction: column; gap: 8px; max-height: 460px; overflow-y: auto; overflow-anchor: none; }
 .bubble { max-width: 78%; padding: 8px 12px; border-radius: 14px; white-space: pre-wrap; word-break: break-word; }
 .bubble.inbound { align-self: flex-start; background: var(--surface-2); border-bottom-left-radius: 4px; }
 .bubble.outbound { align-self: flex-end; background: var(--accent-soft); border-bottom-right-radius: 4px; }

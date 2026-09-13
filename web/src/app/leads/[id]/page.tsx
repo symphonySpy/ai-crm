@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { ApiError, aiService, leadService, messageService } from '@/services';
@@ -17,6 +17,22 @@ import { usePolling } from '@/hooks/usePolling';
 import type { Activity, AiSuggestion, Lead, Message } from '@/lib/types';
 import { StageBadge, TriageBadge } from '@/components/StageBadge';
 
+/**
+ * Combine what the screen already has with a newly fetched window, by id.
+ *
+ * By id so that a refresh updates a message in place — an outbound message moving from
+ * pending to sent — rather than showing it twice. Ordered by (createdAt, id), the same
+ * total order the API pages by, so a burst of messages in one millisecond cannot swap
+ * places between refreshes.
+ */
+function mergeMessages(existing: Message[], incoming: Message[]): Message[] {
+  const byId = new Map(existing.map((m) => [m.id, m]));
+  for (const m of incoming) byId.set(m.id, m);
+  return [...byId.values()].sort((a, b) =>
+    a.createdAt === b.createdAt ? (a.id < b.id ? -1 : 1) : a.createdAt < b.createdAt ? -1 : 1,
+  );
+}
+
 export default function LeadDetailPage() {
   const router = useRouter();
   const params = useParams<{ id: string }>();
@@ -26,6 +42,10 @@ export default function LeadDetailPage() {
   const [lead, setLead] = useState<Lead | null>(null);
   const [activities, setActivities] = useState<Activity[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
+  const [hasOlder, setHasOlder] = useState(false);
+  const [loadingOlder, setLoadingOlder] = useState(false);
+  const pagedBack = useRef(false);
+
   const [suggestions, setSuggestions] = useState<AiSuggestion[]>([]);
 
   const [error, setError] = useState<string | null>(null);
@@ -62,7 +82,12 @@ export default function LeadDetailPage() {
         if (requestId !== latestRequest.current) return;
         setLead(d.lead);
         setActivities(d.activities);
-        setMessages(d.messages);
+        // Merged, not replaced: the response is only the newest window, and replacing
+        // would throw away every older page the user has scrolled back to read.
+        setMessages((prev) => mergeMessages(prev, d.messages));
+        // Once the user has paged back, "is there anything older?" is answered by the
+        // oldest page they fetched. The latest window would say "yes" forever.
+        if (!pagedBack.current) setHasOlder(d.hasOlderMessages);
         setSuggestions(d.aiSuggestions);
         // A background refresh leaves the banner alone. Clearing it would erase the
         // answer to something the user just did — "you can only send on leads you
@@ -85,6 +110,64 @@ export default function LeadDetailPage() {
 
   // Paused while an action is running: that action reloads on its own when it finishes.
   usePolling(() => load({ background: true }), LEAD_DETAIL_POLL_MS, busy === null);
+
+  const threadRef = useRef<HTMLDivElement>(null);
+  // Whether the reader is at the bottom of the thread. A new message scrolls into view
+  // only then — pulling someone down while they are reading something older is the
+  // quickest way to make a chat screen feel broken.
+  const pinnedToBottom = useRef(true);
+  // Distance from the bottom of the thread, recorded just before older messages go in.
+  // Anchoring to the bottom rather than to the old total height is what keeps it exact:
+  // everything that changes size on a prepend — the inserted messages, and the "load
+  // older" button flipping back from its loading label — sits above the message being
+  // read, so the distance from that message to the bottom does not change.
+  const distanceFromBottom = useRef<number | null>(null);
+
+  const rememberScroll = () => {
+    const el = threadRef.current;
+    if (!el) return;
+    pinnedToBottom.current = el.scrollHeight - el.scrollTop - el.clientHeight < 40;
+  };
+
+  // A different lead is a different conversation. The App Router can keep this
+  // component mounted between /leads/a and /leads/b, so nothing carries over by accident.
+  useEffect(() => {
+    setMessages([]);
+    setHasOlder(false);
+    pagedBack.current = false;
+    pinnedToBottom.current = true;
+  }, [leadId]);
+
+  useLayoutEffect(() => {
+    const el = threadRef.current;
+    if (!el) return;
+    if (distanceFromBottom.current !== null) {
+      // Older messages went in above: keep the message the reader was looking at under
+      // their eyes.
+      el.scrollTop = el.scrollHeight - distanceFromBottom.current;
+      distanceFromBottom.current = null;
+    } else if (pinnedToBottom.current) {
+      el.scrollTop = el.scrollHeight;
+    }
+  }, [messages]);
+
+  const loadOlder = async () => {
+    const oldest = messages[0];
+    if (!oldest) return;
+    setLoadingOlder(true);
+    try {
+      const d = await messageService.older(leadId, oldest.id);
+      pagedBack.current = true;
+      const el = threadRef.current;
+      distanceFromBottom.current = el ? el.scrollHeight - el.scrollTop : null;
+      setMessages((prev) => mergeMessages(prev, d.rows));
+      setHasOlder(d.hasOlder);
+    } catch (err) {
+      handleError(err);
+    } finally {
+      setLoadingOlder(false);
+    }
+  };
 
   async function run(key: string, fn: () => Promise<string | void>) {
     setBusy(key);
@@ -215,7 +298,17 @@ export default function LeadDetailPage() {
                   ยังไม่มีข้อความ
                 </p>
               ) : (
-                <div className="thread">
+                <div className="thread" ref={threadRef} onScroll={rememberScroll}>
+                  {hasOlder && (
+                    <button
+                      className="btn-sm"
+                      style={{ alignSelf: 'center' }}
+                      disabled={loadingOlder}
+                      onClick={loadOlder}
+                    >
+                      {loadingOlder ? 'กำลังโหลด…' : 'โหลดข้อความก่อนหน้า'}
+                    </button>
+                  )}
                   {messages.map((m) => (
                     <div key={m.id} className={`bubble ${m.direction}`}>
                       {m.body ?? <em className="muted">[{m.content_type}]</em>}

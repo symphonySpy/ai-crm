@@ -4,6 +4,7 @@ const { Op } = require('sequelize');
 const db = require('../models');
 const { LEAD_STAGES } = require('../constants/enums');
 const { notFound, badRequest } = require('../middleware/errors');
+const conversationService = require('./conversation-service');
 
 // Everything a lead screen needs about the records it points at. Kept here so the list,
 // the detail view and every mutation return the same shape — a client that gets
@@ -85,14 +86,17 @@ async function getLeadDetail(id) {
   const lead = await withRelations(id);
   if (!lead) throw notFound('Lead');
 
-  const [activities, messages, aiSuggestions] = await Promise.all([
+  const [activities, conversation, aiSuggestions] = await Promise.all([
     db.Activity.findAll({
       where: { lead_id: lead.id },
       include: [{ model: db.User, as: 'actor', attributes: ['id', 'name', 'role'] }],
       order: [['occurred_at', 'DESC'], ['id', 'DESC']],
       limit: 100,
     }),
-    db.Message.findAll({ where: { lead_id: lead.id }, order: [['created_at', 'ASC']], limit: 200 }),
+    // The newest window only; older messages are fetched on demand with a cursor from
+    // GET /api/leads/:id/messages?before=. See conversation-service.js for why this used
+    // to return the oldest 200 instead.
+    conversationService.latestMessages(lead.id),
     db.AiSuggestion.findAll({
       where: { lead_id: lead.id },
       order: [['created_at', 'DESC']],
@@ -100,7 +104,13 @@ async function getLeadDetail(id) {
     }),
   ]);
 
-  return { lead, activities, messages, aiSuggestions };
+  return {
+    lead,
+    activities,
+    messages: conversation.rows,
+    hasOlderMessages: conversation.hasOlder,
+    aiSuggestions,
+  };
 }
 
 /**

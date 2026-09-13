@@ -1,5 +1,5 @@
 import type { Message } from '@/lib/types';
-import { post } from './http';
+import { get, post, withQuery } from './http';
 import { leadMessagesPath } from './apiPath';
 
 /**
@@ -11,3 +11,11 @@ export const send = (leadId: string, text: string, suggestionId?: string) =>
     text,
     suggestion_id: suggestionId ?? null,
   });
+
+/**
+ * Messages older than `before` (a message id the screen already has), oldest-to-newest.
+ * A cursor rather than a page number, so messages arriving while someone scrolls back do
+ * not shift the pages under them.
+ */
+export const older = (leadId: string, before: string) =>
+  get<{ rows: Message[]; hasOlder: boolean }>(withQuery(leadMessagesPath(leadId), { before }));

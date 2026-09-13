@@ -5,6 +5,9 @@
 // the same instructions (A17).
 const PROMPT_VERSION = 'v1';
 
+/** How much of the conversation the model is shown. The tail is what decides a next action. */
+const RECENT_MESSAGE_LIMIT = 12;
+
 // A24: the rubric lives here, in one place, and the rule-based fallback in fallback.js
 // scores against the same five criteria. That is what makes a degraded answer comparable
 // to a normal one instead of a different thing wearing the same label.
@@ -62,9 +65,15 @@ const daysSince = (d) =>
  * answer "what did the model see when it said that?", which it can only do if it is the
  * same data rather than a second query run a moment later.
  */
-function buildContext({ lead, contact, company, messages }) {
-  const inbound = messages.filter((m) => m.direction === 'inbound');
-  const outbound = messages.filter((m) => m.direction === 'outbound');
+function buildContext({ lead, contact, company, messages, counts }) {
+  // `counts` are totals for the whole conversation, passed in by the caller. `messages`
+  // is only a window of it, so counting that would report at most RECENT_MESSAGE_LIMIT
+  // and quietly flatten the engagement signal for exactly the leads that talk the most.
+  // Deriving from `messages` remains as the fallback for callers holding the full list.
+  const messageCounts = counts || {
+    inbound: messages.filter((m) => m.direction === 'inbound').length,
+    outbound: messages.filter((m) => m.direction === 'outbound').length,
+  };
 
   return {
     lead: {
@@ -79,10 +88,10 @@ function buildContext({ lead, contact, company, messages }) {
     },
     contact: { name: contact ? contact.name : null },
     company: company ? { name: company.name, industry: company.industry } : null,
-    message_counts: { inbound: inbound.length, outbound: outbound.length },
+    message_counts: messageCounts,
     // Only the tail of the conversation. The whole thread would cost tokens without
     // adding signal — what matters for a next action is what was said recently.
-    recent_messages: messages.slice(-12).map((m) => ({
+    recent_messages: messages.slice(-RECENT_MESSAGE_LIMIT).map((m) => ({
       direction: m.direction,
       at: fmtDate(m.created_at || m.createdAt),
       // A37: non-text content has no body; say so rather than showing an empty string,
@@ -133,4 +142,11 @@ ${conversation}
 ประเมิน lead นี้ตามเกณฑ์ แล้วตอบตามรูปแบบที่กำหนด`;
 }
 
-module.exports = { SYSTEM_PROMPT, RUBRIC, PROMPT_VERSION, buildContext, renderUserTurn };
+module.exports = {
+  SYSTEM_PROMPT,
+  RUBRIC,
+  PROMPT_VERSION,
+  RECENT_MESSAGE_LIMIT,
+  buildContext,
+  renderUserTurn,
+};

@@ -2,7 +2,8 @@
 
 const db = require('../models');
 const { getAiAdapter, AiUnavailableError } = require('../lib/ai/adapter');
-const { buildContext, PROMPT_VERSION } = require('../lib/ai/prompt');
+const { buildContext, PROMPT_VERSION, RECENT_MESSAGE_LIMIT } = require('../lib/ai/prompt');
+const conversation = require('./conversation-service');
 const { buildFallbackBundle } = require('../lib/ai/fallback');
 const { validateBundle } = require('../lib/ai/schema');
 const { notFound } = require('../middleware/errors');
@@ -29,17 +30,22 @@ async function generateSuggestion({ leadId, actor, adapter = getAiAdapter(), log
   });
   if (!lead) throw notFound('Lead');
 
-  const messages = await db.Message.findAll({
-    where: { lead_id: lead.id },
-    order: [['created_at', 'ASC']],
-    limit: 200,
-  });
+  // Only what the prompt uses: the newest RECENT_MESSAGE_LIMIT messages, and the totals
+  // for the whole thread counted separately. This used to fetch the oldest 200 and take
+  // the last 12 of those — so past 200 messages the model was shown a stretch of the
+  // conversation from weeks earlier and asked what to do next, and the engagement score
+  // was computed from a count that could never exceed 200.
+  const [recent, counts] = await Promise.all([
+    conversation.latestMessages(lead.id, RECENT_MESSAGE_LIMIT),
+    conversation.countByDirection(lead.id),
+  ]);
 
   const context = buildContext({
     lead,
     contact: lead.contact,
     company: lead.company,
-    messages,
+    messages: recent.rows,
+    counts,
   });
 
   let bundle;
