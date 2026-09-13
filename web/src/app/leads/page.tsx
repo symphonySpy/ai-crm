@@ -1,12 +1,13 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ApiError, leadService } from '@/services';
 import { formatDate, formatTHB } from '@/lib/format';
-import { LEAD_STAGES, PAGE_SIZE } from '@/constants';
+import { LEAD_LIST_POLL_MS, LEAD_STAGES, PAGE_SIZE } from '@/constants';
 import { useTableParams } from '@/hooks/useTableParams';
+import { usePolling } from '@/hooks/usePolling';
 import type { Lead, Pagination, StageSummary } from '@/lib/types';
 import { StageBadge, TriageBadge } from '@/components/StageBadge';
 
@@ -39,48 +40,77 @@ export default function LeadsPage() {
     [router],
   );
 
-  useEffect(() => {
-    leadService
-      .summary()
-      .then((d) => {
+  const loadSummary = useCallback(
+    async ({ background = false } = {}) => {
+      try {
+        const d = await leadService.summary();
         setStages(d.stages);
         setNeedsTriageCount(d.needsTriage);
-      })
-      .catch(handleError);
-  }, [handleError]);
+      } catch (err) {
+        if (background && !(err instanceof ApiError && err.needsLogin)) return;
+        handleError(err);
+      }
+    },
+    [handleError],
+  );
+
+  useEffect(() => {
+    loadSummary();
+  }, [loadSummary]);
 
   const { query, stage, triageOnly, page } = params;
 
-  useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    leadService
-      .list({
-        q: query || undefined,
-        stage: stage || undefined,
-        needsTriage: triageOnly ? 'true' : undefined,
-        page,
-        limit: PAGE_SIZE,
-      })
-      .then((d) => {
-        if (cancelled) return;
+  // Each request takes a number and only the newest may write. This covers both races:
+  // typing a new search while an older one is still in flight, and a background refresh
+  // for the previous filter landing after the user has already changed it.
+  const latestRequest = useRef(0);
+
+  const loadRows = useCallback(
+    async ({ background = false } = {}) => {
+      const requestId = ++latestRequest.current;
+      // Only a user-driven load shows the loading state. A refresh every half minute
+      // that disabled the pager and blanked the empty-state row would make the table
+      // twitch while someone is reading it.
+      if (!background) setLoading(true);
+      try {
+        const d = await leadService.list({
+          q: query || undefined,
+          stage: stage || undefined,
+          needsTriage: triageOnly ? 'true' : undefined,
+          page,
+          limit: PAGE_SIZE,
+        });
+        if (requestId !== latestRequest.current) return;
         setRows(d.rows);
         setPagination(d.pagination);
-        setError(null);
+        if (!background) setError(null);
         setReady(true);
-      })
-      .catch((err) => {
-        if (!cancelled) handleError(err);
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    // A response that arrives after a newer one would otherwise overwrite it with stale
-    // rows — the classic out-of-order race on a search box.
-    return () => {
-      cancelled = true;
-    };
-  }, [query, stage, triageOnly, page, handleError]);
+      } catch (err) {
+        if (requestId !== latestRequest.current) return;
+        if (background && !(err instanceof ApiError && err.needsLogin)) return;
+        handleError(err);
+      } finally {
+        if (!background && requestId === latestRequest.current) setLoading(false);
+      }
+    },
+    [query, stage, triageOnly, page, handleError],
+  );
+
+  useEffect(() => {
+    loadRows();
+  }, [loadRows]);
+
+  // A46: a lead that arrives from LINE shows up in the list and the triage count without
+  // anyone pressing refresh.
+  //
+  // Paused while a user-driven load is running. A poll starting then would take a newer
+  // request number, the user's result would be discarded as stale, and its `finally`
+  // would skip clearing `loading` — leaving the pager disabled until the next change.
+  usePolling(
+    () => Promise.all([loadRows({ background: true }), loadSummary({ background: true })]),
+    LEAD_LIST_POLL_MS,
+    !loading,
+  );
 
   const pipelineValue = stages
     .filter((s) => s.stage !== 'Lost')

@@ -21,6 +21,15 @@ export const MAX_PAGE_SIZE = 100;
 /** Quiet time before a search fires. Per keystroke would be a LIKE across three joins. */
 export const SEARCH_DEBOUNCE_MS = 300;
 
+/**
+ * A46: how often an open screen re-checks for new data. The conversation is the screen
+ * where a delay is felt — a customer is waiting — so it is checked more often than the
+ * list, where a new lead appearing half a minute late changes nothing.
+ * Twenty people with a lead open is two requests a second, which the API does not notice.
+ */
+export const LEAD_DETAIL_POLL_MS = 10_000;
+export const LEAD_LIST_POLL_MS = 30_000;
+
 /** Timeline entry types, as written by the API's activity.type enum. */
 export const ACTIVITY_LABELS: Record<string, string> = {
   lead_created: 'สร้าง lead',

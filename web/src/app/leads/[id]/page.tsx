@@ -1,12 +1,19 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { ApiError, aiService, leadService, messageService } from '@/services';
 import { formatDateTime, formatTHB } from '@/lib/format';
-import { ACTIVITY_LABELS, CRITERION_LABELS, LEAD_STAGES, SYSTEM_ACTOR_LABEL } from '@/constants';
+import {
+  ACTIVITY_LABELS,
+  CRITERION_LABELS,
+  LEAD_DETAIL_POLL_MS,
+  LEAD_STAGES,
+  SYSTEM_ACTOR_LABEL,
+} from '@/constants';
 import { useAuth } from '@/contexts/auth';
+import { usePolling } from '@/hooks/usePolling';
 import type { Activity, AiSuggestion, Lead, Message } from '@/lib/types';
 import { StageBadge, TriageBadge } from '@/components/StageBadge';
 
@@ -41,22 +48,43 @@ export default function LeadDetailPage() {
     [router],
   );
 
-  const load = useCallback(async () => {
-    try {
-      const d = await leadService.detail(leadId);
-      setLead(d.lead);
-      setActivities(d.activities);
-      setMessages(d.messages);
-      setSuggestions(d.aiSuggestions);
-      setError(null);
-    } catch (err) {
-      handleError(err);
-    }
-  }, [leadId, handleError]);
+  // Every load takes a number; only the newest one may write. Without this, a poll that
+  // left before the user pressed "send" and came back after it would replace the fresh
+  // conversation with the one from before the message went out — the sent message
+  // would vanish for up to one interval and look like it had failed.
+  const latestRequest = useRef(0);
+
+  const load = useCallback(
+    async ({ background = false } = {}) => {
+      const requestId = ++latestRequest.current;
+      try {
+        const d = await leadService.detail(leadId);
+        if (requestId !== latestRequest.current) return;
+        setLead(d.lead);
+        setActivities(d.activities);
+        setMessages(d.messages);
+        setSuggestions(d.aiSuggestions);
+        // A background refresh leaves the banner alone. Clearing it would erase the
+        // answer to something the user just did — "you can only send on leads you
+        // own" — ten seconds later, before they have finished reading it.
+        if (!background) setError(null);
+      } catch (err) {
+        if (requestId !== latestRequest.current) return;
+        // A dropped poll on a flaky connection is not worth a red banner; the next one
+        // will try again. A 401 still matters, so that path is kept.
+        if (background && !(err instanceof ApiError && err.needsLogin)) return;
+        handleError(err);
+      }
+    },
+    [leadId, handleError],
+  );
 
   useEffect(() => {
     load();
   }, [load]);
+
+  // Paused while an action is running: that action reloads on its own when it finishes.
+  usePolling(() => load({ background: true }), LEAD_DETAIL_POLL_MS, busy === null);
 
   async function run(key: string, fn: () => Promise<string | void>) {
     setBusy(key);
