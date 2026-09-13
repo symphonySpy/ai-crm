@@ -111,6 +111,7 @@ primary key ที่ทำหน้าที่กัน webhook ซ้ำ, แ
 
 | เอกสาร | เนื้อหา |
 |---|---|
+| [`docs/system-flow.html`](docs/system-flow.html) | ภาพรวมหน้าเดียวสำหรับส่งมอบงาน: flow ธุรกิจ, สถาปัตยกรรม, ลำดับ webhook, สถานะ, ตัวแปรบน Railway |
 | [`docs/assumptions.md`](docs/assumptions.md) | สมมติฐาน 46 ข้อ (A1–A46) รวมสิ่งที่เลือกไม่ทำและความเสี่ยงที่รับไว้ |
 | [`docs/erd.md`](docs/erd.md) | ER diagram (สร้างจาก model จริง) |
 | [`docs/data-dictionary.md`](docs/data-dictionary.md) | พจนานุกรมข้อมูลทุกตารางทุกคอลัมน์ (สร้างจาก model จริง) |

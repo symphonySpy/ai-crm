@@ -1,0 +1,507 @@
+<title>AI CRM System Flow</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+  :root{
+    --paper:#f6f5f1; --panel:#ffffff; --ink:#1c2530; --muted:#5c6672;
+    --line:#dcd9d1; --line-strong:#c3bfb4;
+    --cust:#0e8452;   /* ลูกค้า · LINE */
+    --sales:#4f52b3;  /* พนักงานขาย */
+    --mgr:#b5731a;    /* ผู้จัดการ */
+    --ai:#b1466a;     /* ผู้ช่วย AI */
+    --sys:#0f7a72;    /* ระบบของเรา */
+    --ext:#6b7480;    /* บริการภายนอก */
+    --warn:#b0452f;   /* เส้นทางที่ล้มเหลว */
+    --cust-soft:#e1f1e8; --sales-soft:#e7e7f5; --mgr-soft:#f6ecdc; --ai-soft:#f7e6ec;
+    --sys-soft:#e3efed; --ext-soft:#eceef0; --warn-soft:#f6e3de;
+    --accent:#0f7a72;
+    --shadow:0 1px 2px rgba(28,37,48,.06),0 6px 20px rgba(28,37,48,.05);
+    --sans:"IBM Plex Sans Thai",-apple-system,"Segoe UI",Tahoma,system-ui,sans-serif;
+    --mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+  }
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme="light"]){
+      --paper:#141a20; --panel:#1c242c; --ink:#e6e9ec; --muted:#9aa4af;
+      --line:#2c353e; --line-strong:#3a444e;
+      --cust:#4fc98f; --sales:#9296ec; --mgr:#e0a24e; --ai:#e07a9c; --sys:#4bcabf; --ext:#9aa4af; --warn:#e57a62;
+      --cust-soft:#12301f; --sales-soft:#23244a; --mgr-soft:#3a2c17; --ai-soft:#3a1f28;
+      --sys-soft:#123330; --ext-soft:#252c33; --warn-soft:#3a1e18;
+      --accent:#4bcabf;
+      --shadow:0 1px 2px rgba(0,0,0,.3),0 6px 20px rgba(0,0,0,.25);
+    }
+  }
+  :root[data-theme="dark"]{
+    --paper:#141a20; --panel:#1c242c; --ink:#e6e9ec; --muted:#9aa4af;
+    --line:#2c353e; --line-strong:#3a444e;
+    --cust:#4fc98f; --sales:#9296ec; --mgr:#e0a24e; --ai:#e07a9c; --sys:#4bcabf; --ext:#9aa4af; --warn:#e57a62;
+    --cust-soft:#12301f; --sales-soft:#23244a; --mgr-soft:#3a2c17; --ai-soft:#3a1f28;
+    --sys-soft:#123330; --ext-soft:#252c33; --warn-soft:#3a1e18;
+    --accent:#4bcabf;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 6px 20px rgba(0,0,0,.25);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);line-height:1.6;font-weight:400}
+  .wrap{max-width:1080px;margin:0 auto;padding:clamp(20px,4vw,56px) clamp(16px,4vw,40px)}
+  header.masthead{border-bottom:2px solid var(--ink);padding-bottom:22px;margin-bottom:8px}
+  .eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);font-weight:600}
+  h1{font-size:clamp(28px,5vw,44px);line-height:1.12;margin:.3em 0 .2em;font-weight:700;text-wrap:balance;letter-spacing:-.01em}
+  .sub{color:var(--muted);font-size:clamp(15px,2vw,17px);max-width:64ch;margin:0}
+  .meta{display:flex;flex-wrap:wrap;gap:8px 22px;margin-top:16px;font-family:var(--mono);font-size:12.5px;color:var(--muted)}
+  .meta b{color:var(--ink);font-weight:600}
+  .notice{display:flex;gap:12px;align-items:flex-start;background:var(--mgr-soft);border:1px solid var(--mgr);border-radius:10px;padding:13px 16px;margin:26px 0 8px;font-size:14px}
+  .notice svg{flex:none;margin-top:3px;color:var(--mgr)}
+  .notice p{margin:0}
+  .notice p+p{margin-top:6px}
+  section{margin-top:56px}
+  .kicker{font-family:var(--mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:600}
+  h2{font-size:clamp(22px,3.4vw,30px);margin:.15em 0 .1em;font-weight:700;letter-spacing:-.01em;text-wrap:balance}
+  h3{font-size:18px;margin:34px 0 2px;font-weight:600;text-wrap:balance}
+  .lead{color:var(--muted);max-width:66ch;margin:.3em 0 0}
+  figure{margin:22px 0 0;background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);padding:22px 20px 8px;overflow-x:auto}
+  figure svg{display:block;min-width:720px;max-width:100%;height:auto;margin:0 auto;color:var(--ink)}
+  figcaption{font-size:13.5px;color:var(--muted);padding:14px 4px 12px;border-top:1px solid var(--line);margin-top:14px}
+  figcaption b{color:var(--ink);font-weight:600}
+  .legend{display:flex;flex-wrap:wrap;gap:6px 18px;font-family:var(--mono);font-size:12px;margin:16px 2px 0}
+  .legend span{display:inline-flex;align-items:center;gap:6px;color:var(--muted)}
+  .dot{width:11px;height:11px;border-radius:3px;flex:none;display:inline-block;border:1.5px solid}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-top:22px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px}
+  .role{font-family:var(--mono);font-size:12px;font-weight:600;letter-spacing:.04em;padding:2px 9px;border-radius:20px;display:inline-block;margin-bottom:8px}
+  .card p{margin:0;font-size:14px;color:var(--muted)}
+  .card p+p{margin-top:7px}
+  .card b{color:var(--ink);font-weight:600}
+  ul.clean{margin:12px 0 0;padding:0;list-style:none}
+  ul.clean li{position:relative;padding:9px 0 9px 26px;border-top:1px solid var(--line);font-size:14.5px}
+  ul.clean li:first-child{border-top:none}
+  ul.clean li::before{content:"";position:absolute;left:4px;top:17px;width:8px;height:8px;border-radius:50%;background:var(--accent)}
+  ul.clean li b{font-weight:600}
+  ul.todo li::before{background:var(--mgr)}
+  ol.steps{margin:18px 0 0;padding:0;list-style:none;counter-reset:s;background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow)}
+  ol.steps li{counter-increment:s;display:grid;grid-template-columns:40px 1fr;gap:4px 12px;padding:13px 18px;border-top:1px solid var(--line);font-size:14.5px}
+  ol.steps li:first-child{border-top:none}
+  ol.steps li::before{content:counter(s);font-family:var(--mono);font-weight:600;font-size:13px;color:var(--sys);background:var(--sys-soft);border-radius:8px;height:26px;display:grid;place-items:center;grid-row:span 2}
+  ol.steps .stop{grid-column:2;font-size:13px;color:var(--warn)}
+  ol.steps .stop::before{content:"หยุดตรงนี้ ถ้า ";font-weight:600}
+  code{font-family:var(--mono);font-size:.86em;background:var(--ext-soft);padding:1px 6px;border-radius:5px;overflow-wrap:anywhere}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:14px;font-family:var(--mono);font-size:12.5px}
+  .chip{padding:3px 12px;border-radius:20px;border:1px solid var(--line-strong);color:var(--ink);background:var(--panel)}
+  .chip.won{border-color:var(--cust);color:var(--cust);background:var(--cust-soft);font-weight:600}
+  .chip.lost{border-color:var(--warn);color:var(--warn);background:var(--warn-soft);font-weight:600}
+  .arrow{color:var(--muted)}
+  .table-wrap{overflow-x:auto;margin-top:18px;background:var(--panel);border:1px solid var(--line);border-radius:12px}
+  table{border-collapse:collapse;width:100%;font-size:14px;min-width:640px}
+  th,td{text-align:left;padding:10px 14px;border-top:1px solid var(--line);vertical-align:top}
+  thead th{border-top:none;font-family:var(--mono);font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600;background:var(--paper)}
+  td:first-child{white-space:nowrap}
+  td .muted{color:var(--muted)}
+  .two{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px;margin-top:18px}
+  footer{margin-top:60px;border-top:1px solid var(--line);padding-top:18px;font-size:13px;color:var(--muted);font-family:var(--mono)}
+  footer p{margin:0}
+  footer p+p{margin-top:4px}
+  a{color:var(--accent)}
+  a:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:3px}
+</style>
+
+<div class="wrap">
+
+<header class="masthead">
+  <div class="eyebrow">Knowledge Transfer · Handover</div>
+  <h1>AI CRM — ภาพรวมการทำงานของระบบ</h1>
+  <p class="sub">CRM สำหรับทีมขายที่รับลูกค้าผ่าน LINE Official Account มีผู้ช่วย AI เสนอคะแนน สรุป และร่างคำตอบ โดยทุกข้อความที่ถึงลูกค้าต้องมีคนอนุมัติ เอกสารนี้สรุป Flow ธุรกิจ และ Flow ระบบสำหรับ Dev ไว้ในหน้าเดียว</p>
+  <div class="meta">
+    <span>Repo: <b>symphonySpy/ai-crm</b></span>
+    <span>เว็บ: <b><a href="https://miraculous-essence-production-509a.up.railway.app">miraculous-essence…up.railway.app</a></b></span>
+    <span>API: <b><a href="https://ai-crm-production-dee4.up.railway.app/health">ai-crm-production-dee4…up.railway.app</a></b></span>
+    <span>ปรับปรุง: <b>2026-09-13</b></span>
+  </div>
+</header>
+
+<div class="notice" role="note">
+  <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path d="M9 1.5 17 16H1Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M9 7v4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="9" cy="13.4" r="1" fill="currentColor"/></svg>
+  <div>
+    <p><b>ผู้ช่วย AI บน prod เป็นโหมด mock</b> — ไม่ได้เรียกโมเดลจริง คำแนะนำที่เห็นเป็นข้อความตัวอย่างที่ผ่าน schema ชุดเดียวกับของจริง เปิดของจริงได้ด้วย <code>AI_ADAPTER=live</code> + <code>AI_API_KEY</code> (API คิดเงินแยกจาก Claude Pro)</p>
+    <p><b>LINE เชื่อมของจริงแล้ว</b> — ข้อความที่ทักเข้า OA จะสร้าง lead บนระบบจริง · <b>Railway เป็น trial</b> เหลือ 28 วัน ณ วันที่ปรับปรุง</p>
+  </div>
+</div>
+
+<!-- ============================================================ PART 1 -->
+<section>
+  <div class="kicker">Part 1 · Business Flow</div>
+  <h2>ใครทำอะไรในระบบ</h2>
+  <p class="lead">หน้าร้านคือ LINE หลังร้านคือเว็บ ลูกค้าไม่เคยเห็นระบบนี้ เห็นแค่แชท LINE ปกติ ส่วนพนักงานขายทำงานจบในเว็บหน้าเดียวโดยไม่ต้องเปิดแอป LINE</p>
+
+  <div class="grid">
+    <div class="card">
+      <span class="role" style="color:var(--cust);background:var(--cust-soft)">ลูกค้า · LINE OA</span>
+      <p>ทักเข้า OA ด้วยข้อความ สติกเกอร์ หรือรูป ข้อความแรกสร้าง<b>ผู้ติดต่อ</b>และ <b>lead</b> ให้อัตโนมัติ</p>
+    </div>
+    <div class="card">
+      <span class="role" style="color:var(--sales);background:var(--sales-soft)">พนักงานขาย · sales</span>
+      <p>รับ lead จากคิวรอคัดกรอง อ่านบทสนทนา เปลี่ยนขั้น ตอบลูกค้า</p>
+      <p>ส่งข้อความได้<b>เฉพาะ lead ของตัวเอง</b></p>
+    </div>
+    <div class="card">
+      <span class="role" style="color:var(--mgr);background:var(--mgr-soft)">ผู้จัดการ · manager</span>
+      <p>ทำได้ทุกอย่างที่ sales ทำ และ<b>ย้าย lead ระหว่างคน</b>ได้</p>
+      <p>ส่งข้อความได้ทุก lead</p>
+    </div>
+    <div class="card">
+      <span class="role" style="color:var(--ai);background:var(--ai-soft)">ผู้ช่วย AI</span>
+      <p>ทำงานเมื่อมีคนกดขอเท่านั้น <b>เสนอได้ ตัดสินใจไม่ได้</b> — ไม่ส่งข้อความ ไม่เปลี่ยนขั้น ไม่แตะข้อมูล lead</p>
+    </div>
+  </div>
+
+  <h3>ข้อความเข้า → lead ใหม่ในคิวรอคัดกรอง</h3>
+  <p class="lead">ข้อความหนึ่งข้อความแตกเป็นหลายแถว แต่ก่อนจะเขียนอะไรลงฐานข้อมูล ต้องผ่านการตรวจลายเซ็นก่อนเสมอ</p>
+  <figure>
+    <svg viewBox="0 0 922 262" role="img" aria-label="ลูกค้าทัก LINE, LINE ยิง webhook, ระบบตรวจลายเซ็น ถ้าไม่ผ่านตอบ 401 และไม่บันทึกอะไร, ถ้า event ซ้ำให้ข้าม, จากนั้นหาหรือสร้างผู้ติดต่อ หา lead ที่ยังเปิดหรือสร้างใหม่ แล้วเข้าคิวรอคัดกรองให้พนักงานขายเห็น">
+      <defs>
+        <marker id="aIn" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><polygon points="0,0 9,4.5 0,9" fill="currentColor"/></marker>
+        <marker id="aInWarn" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><polygon points="0,0 9,4.5 0,9" fill="var(--warn)"/></marker>
+      </defs>
+      <g font-family="var(--sans)" font-size="12.5">
+        <rect x="16" y="40" width="130" height="56" rx="9" fill="var(--cust-soft)" stroke="var(--cust)" stroke-width="1.6"/>
+        <text x="81" y="63" text-anchor="middle" fill="var(--ink)">ลูกค้าทัก LINE OA</text>
+        <text x="81" y="81" text-anchor="middle" fill="var(--muted)" font-size="11">ข้อความ · สติกเกอร์ · รูป</text>
+
+        <rect x="168" y="40" width="130" height="56" rx="9" fill="var(--ext-soft)" stroke="var(--ext)" stroke-width="1.6" stroke-dasharray="5 4"/>
+        <text x="233" y="63" text-anchor="middle" fill="var(--ink)">LINE ยิง webhook</text>
+        <text x="233" y="81" text-anchor="middle" fill="var(--muted)" font-size="11" font-family="var(--mono)">POST /webhooks/line</text>
+
+        <rect x="320" y="40" width="130" height="56" rx="9" fill="var(--panel)" stroke="var(--sys)" stroke-width="1.6"/>
+        <text x="385" y="63" text-anchor="middle" fill="var(--ink)">ตรวจลายเซ็น</text>
+        <text x="385" y="81" text-anchor="middle" fill="var(--muted)" font-size="11">HMAC จากไบต์ดิบ</text>
+
+        <rect x="472" y="40" width="130" height="56" rx="9" fill="var(--panel)" stroke="var(--sys)" stroke-width="1.6"/>
+        <text x="537" y="63" text-anchor="middle" fill="var(--ink)">หา/สร้างผู้ติดต่อ</text>
+        <text x="537" y="81" text-anchor="middle" fill="var(--muted)" font-size="11">line_user_id ไม่ซ้ำ</text>
+
+        <rect x="624" y="40" width="130" height="56" rx="9" fill="var(--panel)" stroke="var(--sys)" stroke-width="1.6"/>
+        <text x="689" y="63" text-anchor="middle" fill="var(--ink)">หา lead ที่ยังเปิด</text>
+        <text x="689" y="81" text-anchor="middle" fill="var(--muted)" font-size="11">ไม่มี → สร้างใหม่</text>
+
+        <rect x="776" y="40" width="130" height="56" rx="9" fill="var(--sales-soft)" stroke="var(--sales)" stroke-width="1.6"/>
+        <text x="841" y="63" text-anchor="middle" fill="var(--ink)">คิวรอคัดกรอง</text>
+        <text x="841" y="81" text-anchor="middle" fill="var(--muted)" font-size="11">New · ยังไม่มีเจ้าของ</text>
+      </g>
+      <g stroke="currentColor" stroke-width="1.4" fill="none" marker-end="url(#aIn)">
+        <line x1="146" y1="68" x2="166" y2="68"/>
+        <line x1="298" y1="68" x2="318" y2="68"/>
+        <line x1="450" y1="68" x2="470" y2="68"/>
+        <line x1="602" y1="68" x2="622" y2="68"/>
+        <line x1="754" y1="68" x2="774" y2="68"/>
+      </g>
+
+      <g font-family="var(--sans)" font-size="12.5">
+        <line x1="385" y1="96" x2="385" y2="166" stroke="var(--warn)" stroke-width="1.4" marker-end="url(#aInWarn)"/>
+        <text x="393" y="136" fill="var(--warn)" font-size="11">ไม่ผ่าน</text>
+        <rect x="310" y="168" width="150" height="56" rx="9" fill="var(--warn-soft)" stroke="var(--warn)" stroke-width="1.4"/>
+        <text x="385" y="191" text-anchor="middle" fill="var(--ink)">ตอบ 401</text>
+        <text x="385" y="209" text-anchor="middle" fill="var(--muted)" font-size="11">ไม่บันทึกอะไรเลย</text>
+
+        <line x1="537" y1="96" x2="537" y2="166" stroke="var(--ext)" stroke-width="1.4" stroke-dasharray="4 4" marker-end="url(#aIn)" color="var(--ext)"/>
+        <text x="545" y="136" fill="var(--muted)" font-size="11">event id ซ้ำ</text>
+        <rect x="462" y="168" width="150" height="56" rx="9" fill="var(--ext-soft)" stroke="var(--ext)" stroke-width="1.4"/>
+        <text x="537" y="191" text-anchor="middle" fill="var(--ink)">ข้าม</text>
+        <text x="537" y="209" text-anchor="middle" fill="var(--muted)" font-size="11">LINE ส่งซ้ำ ไม่เกิดแถวใหม่</text>
+
+        <line x1="689" y1="96" x2="689" y2="166" stroke="var(--ext)" stroke-width="1.4" stroke-dasharray="4 4" marker-end="url(#aIn)" color="var(--ext)"/>
+        <text x="697" y="136" fill="var(--muted)" font-size="11">มี lead เปิดอยู่</text>
+        <rect x="614" y="168" width="150" height="56" rx="9" fill="var(--panel)" stroke="var(--sys)" stroke-width="1.4"/>
+        <text x="689" y="191" text-anchor="middle" fill="var(--ink)">ต่อบทสนทนาเดิม</text>
+        <text x="689" y="209" text-anchor="middle" fill="var(--muted)" font-size="11">ไม่สร้าง lead ซ้ำ</text>
+      </g>
+    </svg>
+    <figcaption><b>ตอบ LINE 200 ก่อน แล้วค่อยประมวลผล</b> — LINE ถือว่าตอบช้าคือล้มเหลวแล้วส่งซ้ำ ระบบจึงรับไว้ก่อน แล้วใช้ <code>webhookEventId</code> เป็น primary key กันงานซ้ำ พนักงานขายเห็น lead ใหม่ในหน้ารายการภายใน 30 วินาทีโดยไม่ต้องกด refresh</figcaption>
+  </figure>
+
+  <h3>ตอบลูกค้า — มีคนอนุมัติทุกครั้ง</h3>
+  <p class="lead">ใช้ AI หรือไม่ใช้ก็ได้ แต่ไม่มีเส้นทางไหนที่ข้อความจาก AI ถึงลูกค้าได้โดยไม่ผ่านมือคน</p>
+  <figure>
+    <svg viewBox="0 0 922 292" role="img" aria-label="พนักงานขายรับ lead อ่านบทสนทนา กดขอคำแนะนำ AI ซึ่งไม่บังคับ AI เสนอคะแนน สรุป และร่าง พนักงานแก้แล้วอนุมัติ ระบบส่งถึงลูกค้าทาง LINE ถ้า AI ล้มใช้กติกาสำรองที่ไม่มีร่าง ถ้าปฏิเสธร่างไม่มีอะไรถูกส่ง ถ้า LINE ตอบผิดพลาดลองใหม่สูงสุด 3 ครั้ง">
+      <defs>
+        <marker id="aOut" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><polygon points="0,0 9,4.5 0,9" fill="currentColor"/></marker>
+        <marker id="aOutWarn" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><polygon points="0,0 9,4.5 0,9" fill="var(--warn)"/></marker>
+      </defs>
+      <path d="M233 70 C233 26 689 26 689 70" fill="none" stroke="var(--sales)" stroke-width="1.4" stroke-dasharray="5 4" marker-end="url(#aOut)" color="var(--sales)"/>
+      <text x="461" y="32" text-anchor="middle" font-family="var(--sans)" font-size="11" fill="var(--sales)">ไม่ใช้ AI — เขียนตอบเอง</text>
+
+      <g font-family="var(--sans)" font-size="12.5">
+        <rect x="16" y="72" width="130" height="56" rx="9" fill="var(--sales-soft)" stroke="var(--sales)" stroke-width="1.6"/>
+        <text x="81" y="95" text-anchor="middle" fill="var(--ink)">รับ lead นี้</text>
+        <text x="81" y="113" text-anchor="middle" fill="var(--muted)" font-size="11">จากคิวรอคัดกรอง</text>
+
+        <rect x="168" y="72" width="130" height="56" rx="9" fill="var(--sales-soft)" stroke="var(--sales)" stroke-width="1.6"/>
+        <text x="233" y="95" text-anchor="middle" fill="var(--ink)">อ่านบทสนทนา</text>
+        <text x="233" y="113" text-anchor="middle" fill="var(--muted)" font-size="11">50 ข้อความล่าสุด</text>
+
+        <rect x="320" y="72" width="130" height="56" rx="9" fill="var(--sales-soft)" stroke="var(--sales)" stroke-width="1.6"/>
+        <text x="385" y="95" text-anchor="middle" fill="var(--ink)">กดขอคำแนะนำ</text>
+        <text x="385" y="113" text-anchor="middle" fill="var(--muted)" font-size="11">20 ครั้ง / 5 นาที / คน</text>
+
+        <rect x="472" y="72" width="130" height="56" rx="9" fill="var(--ai-soft)" stroke="var(--ai)" stroke-width="1.6"/>
+        <text x="537" y="95" text-anchor="middle" fill="var(--ink)">AI เสนอ</text>
+        <text x="537" y="113" text-anchor="middle" fill="var(--muted)" font-size="11">คะแนน · สรุป · ร่าง</text>
+
+        <rect x="624" y="72" width="130" height="56" rx="9" fill="var(--sales-soft)" stroke="var(--sales)" stroke-width="1.6"/>
+        <text x="689" y="95" text-anchor="middle" fill="var(--ink)">แก้ แล้วอนุมัติ</text>
+        <text x="689" y="113" text-anchor="middle" fill="var(--muted)" font-size="11">กด "อนุมัติและส่ง"</text>
+
+        <rect x="776" y="72" width="130" height="56" rx="9" fill="var(--cust-soft)" stroke="var(--cust)" stroke-width="1.6"/>
+        <text x="841" y="95" text-anchor="middle" fill="var(--ink)">ลูกค้าได้รับ</text>
+        <text x="841" y="113" text-anchor="middle" fill="var(--muted)" font-size="11">ใน LINE ตามปกติ</text>
+      </g>
+      <g stroke="currentColor" stroke-width="1.4" fill="none" marker-end="url(#aOut)">
+        <line x1="146" y1="100" x2="166" y2="100"/>
+        <line x1="298" y1="100" x2="318" y2="100"/>
+        <line x1="450" y1="100" x2="470" y2="100"/>
+        <line x1="602" y1="100" x2="622" y2="100"/>
+        <line x1="754" y1="100" x2="774" y2="100"/>
+      </g>
+
+      <g font-family="var(--sans)" font-size="12.5">
+        <line x1="537" y1="128" x2="537" y2="198" stroke="var(--warn)" stroke-width="1.4" marker-end="url(#aOutWarn)"/>
+        <text x="545" y="168" fill="var(--warn)" font-size="11">ล่ม / ตอบไม่สอดคล้อง</text>
+        <rect x="462" y="200" width="150" height="56" rx="9" fill="var(--warn-soft)" stroke="var(--warn)" stroke-width="1.4"/>
+        <text x="537" y="223" text-anchor="middle" fill="var(--ink)">กติกาสำรอง</text>
+        <text x="537" y="241" text-anchor="middle" fill="var(--muted)" font-size="11">มีคะแนน ไม่มีร่าง</text>
+
+        <line x1="689" y1="128" x2="689" y2="198" stroke="var(--ext)" stroke-width="1.4" stroke-dasharray="4 4" marker-end="url(#aOut)" color="var(--ext)"/>
+        <text x="697" y="168" fill="var(--muted)" font-size="11">ปฏิเสธร่าง</text>
+        <rect x="614" y="200" width="150" height="56" rx="9" fill="var(--ext-soft)" stroke="var(--ext)" stroke-width="1.4"/>
+        <text x="689" y="223" text-anchor="middle" fill="var(--ink)">ไม่มีอะไรถูกส่ง</text>
+        <text x="689" y="241" text-anchor="middle" fill="var(--muted)" font-size="11">บันทึกว่าใครปฏิเสธ</text>
+
+        <line x1="841" y1="128" x2="841" y2="198" stroke="var(--warn)" stroke-width="1.4" marker-end="url(#aOutWarn)"/>
+        <text x="849" y="168" fill="var(--warn)" font-size="11">LINE error</text>
+        <rect x="766" y="200" width="150" height="56" rx="9" fill="var(--warn-soft)" stroke="var(--warn)" stroke-width="1.4"/>
+        <text x="841" y="223" text-anchor="middle" fill="var(--ink)">ลองใหม่ ≤ 3 ครั้ง</text>
+        <text x="841" y="241" text-anchor="middle" fill="var(--muted)" font-size="11">ไม่สำเร็จ → failed</text>
+      </g>
+    </svg>
+    <figcaption><b>ความคุ้มกันสองชั้น</b> — ปุ่มส่งเป็นสีเทาถ้าไม่ใช่เจ้าของ lead แต่ด่านจริงอยู่ที่ API (<code>403</code>) และที่ฐานข้อมูล: ข้อความขาออกที่ไม่มี <code>approved_by</code> ถูก CHECK constraint ปฏิเสธ ต่อให้โค้ดมีบั๊กก็เขียนลงไม่ได้</figcaption>
+    <div class="legend">
+      <span><i class="dot" style="background:var(--sales-soft);border-color:var(--sales)"></i>พนักงานขายทำ</span>
+      <span><i class="dot" style="background:var(--ai-soft);border-color:var(--ai)"></i>AI เสนอ</span>
+      <span><i class="dot" style="background:var(--cust-soft);border-color:var(--cust)"></i>ถึงลูกค้า</span>
+      <span><i class="dot" style="background:var(--warn-soft);border-color:var(--warn)"></i>เส้นทางเมื่อล้มเหลว</span>
+    </div>
+  </figure>
+
+  <h3>Pipeline และกฎการเปลี่ยนเจ้าของ</h3>
+  <div class="two">
+    <div class="card">
+      <span class="role" style="color:var(--sys);background:var(--sys-soft)">ขั้นของ lead</span>
+      <div class="chips" aria-label="ลำดับขั้น New, Qualified, Proposal, แล้วจบที่ Won หรือ Lost">
+        <span class="chip">New</span><span class="arrow">→</span>
+        <span class="chip">Qualified</span><span class="arrow">→</span>
+        <span class="chip">Proposal</span><span class="arrow">→</span>
+        <span class="chip won">Won</span><span class="arrow">/</span>
+        <span class="chip lost">Lost</span>
+      </div>
+      <p style="margin-top:12px">ย้อนขั้นได้ เพราะดีลจริงถอยหลังได้ แต่<b>ทุกการย้ายลง timeline</b> ว่าใครย้าย จากขั้นไหนไปขั้นไหน</p>
+    </div>
+    <div class="card">
+      <span class="role" style="color:var(--mgr);background:var(--mgr-soft)">ใครเปลี่ยนเจ้าของได้</span>
+      <p><b>sales</b> — รับ lead ที่ยังไม่มีเจ้าของมาเป็นของตัวเอง หรือปล่อย lead ของตัวเองคืนคิว เท่านั้น</p>
+      <p><b>manager</b> — ย้ายได้ทุกแบบ</p>
+      <p>กดรับพร้อมกันสองคน ได้คนเดียว อีกคนได้ <code>409</code> (row lock)</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ PART 2 -->
+<section>
+  <div class="kicker">Part 2 · Developer Flow</div>
+  <h2>ภาพรวมระบบสำหรับนักพัฒนา</h2>
+  <p class="lead">3 service บน Railway ในโปรเจกต์เดียว เบราว์เซอร์คุยกับเว็บเท่านั้น ส่วนเว็บส่งต่อ <code>/api</code> ไปยัง API จากฝั่ง server ทำให้ session cookie เป็น first-party และไม่ต้องเปิด CORS</p>
+
+  <figure>
+    <svg viewBox="0 0 922 430" role="img" aria-label="เบราว์เซอร์เรียกเว็บ Next.js ด้วย HTTPS และ cookie เว็บส่งต่อ /api ไปยัง API Express จากฝั่ง server API อ่านเขียน MySQL ทั้งสามอยู่ใน Railway LINE Platform ยิง webhook เข้า API และ API ส่ง push message กลับไป LINE ส่วน Claude API เชื่อมไว้แต่ปิดอยู่บน prod">
+      <defs>
+        <marker id="aArch" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><polygon points="0,0 9,4.5 0,9" fill="currentColor"/></marker>
+      </defs>
+
+      <rect x="196" y="20" width="484" height="396" rx="14" fill="none" stroke="var(--line-strong)" stroke-width="1.4" stroke-dasharray="6 5"/>
+      <text x="212" y="42" font-family="var(--mono)" font-size="11.5" font-weight="600" fill="var(--muted)">RAILWAY · eloquent-endurance</text>
+
+      <g font-family="var(--sans)" font-size="12.5">
+        <rect x="16" y="78" width="150" height="64" rx="9" fill="var(--sales-soft)" stroke="var(--sales)" stroke-width="1.6"/>
+        <text x="91" y="104" text-anchor="middle" fill="var(--ink)">เบราว์เซอร์</text>
+        <text x="91" y="123" text-anchor="middle" fill="var(--muted)" font-size="11">พนักงานขาย · ผู้จัดการ</text>
+
+        <rect x="226" y="60" width="210" height="100" rx="9" fill="var(--panel)" stroke="var(--sys)" stroke-width="1.6"/>
+        <text x="242" y="84" fill="var(--ink)" font-weight="600">เว็บ · Next.js 15</text>
+        <text x="242" y="104" fill="var(--muted)" font-size="11">middleware กันหน้าที่ต้องล็อกอิน</text>
+        <text x="242" y="122" fill="var(--muted)" font-size="11">rewrite /api/* → API</text>
+        <text x="242" y="140" fill="var(--muted)" font-size="11">polling 10 วิ / 30 วิ</text>
+
+        <rect x="226" y="204" width="210" height="118" rx="9" fill="var(--sys-soft)" stroke="var(--sys)" stroke-width="1.6"/>
+        <text x="242" y="228" fill="var(--ink)" font-weight="600">API · Express 4</text>
+        <text x="242" y="248" fill="var(--muted)" font-size="11">CORS allowlist · signed cookie</text>
+        <text x="242" y="266" fill="var(--muted)" font-size="11">zod ตรวจ input ทุกเส้น</text>
+        <text x="242" y="284" fill="var(--muted)" font-size="11">routes → services</text>
+        <text x="242" y="302" fill="var(--muted)" font-size="11">rest_log ทุก request</text>
+
+        <rect x="226" y="352" width="210" height="48" rx="9" fill="var(--panel)" stroke="var(--sys)" stroke-width="1.6"/>
+        <text x="331" y="373" text-anchor="middle" fill="var(--ink)">MySQL 8</text>
+        <text x="331" y="390" text-anchor="middle" fill="var(--muted)" font-size="11">Sequelize · 8 CHECK constraints</text>
+
+        <rect x="736" y="170" width="170" height="64" rx="9" fill="var(--cust-soft)" stroke="var(--cust)" stroke-width="1.6"/>
+        <text x="821" y="196" text-anchor="middle" fill="var(--ink)">LINE Platform</text>
+        <text x="821" y="215" text-anchor="middle" fill="var(--muted)" font-size="11">Messaging API</text>
+
+        <rect x="736" y="312" width="170" height="64" rx="9" fill="var(--ext-soft)" stroke="var(--ext)" stroke-width="1.6" stroke-dasharray="5 4"/>
+        <text x="821" y="338" text-anchor="middle" fill="var(--ink)">Claude API</text>
+        <text x="821" y="357" text-anchor="middle" fill="var(--muted)" font-size="11">prod: ปิดอยู่ (mock)</text>
+      </g>
+
+      <g font-family="var(--sans)" font-size="11">
+        <line x1="166" y1="110" x2="224" y2="110" stroke="currentColor" stroke-width="1.4" marker-end="url(#aArch)"/>
+        <text x="195" y="101" text-anchor="middle" fill="var(--muted)">HTTPS</text>
+
+        <line x1="331" y1="160" x2="331" y2="202" stroke="currentColor" stroke-width="1.4" marker-end="url(#aArch)"/>
+        <text x="341" y="186" fill="var(--muted)">server-to-server</text>
+
+        <line x1="331" y1="322" x2="331" y2="350" stroke="currentColor" stroke-width="1.4" marker-end="url(#aArch)"/>
+
+        <line x1="736" y1="192" x2="438" y2="238" stroke="var(--cust)" stroke-width="1.4" marker-end="url(#aArch)" color="var(--cust)"/>
+        <text x="587" y="200" text-anchor="middle" fill="var(--cust)">webhook · X-Line-Signature</text>
+
+        <line x1="436" y1="262" x2="734" y2="216" stroke="var(--cust)" stroke-width="1.4" marker-end="url(#aArch)" color="var(--cust)"/>
+        <text x="587" y="262" text-anchor="middle" fill="var(--cust)">push · หลังคนอนุมัติ</text>
+
+        <line x1="436" y1="300" x2="734" y2="340" stroke="var(--ext)" stroke-width="1.4" stroke-dasharray="5 4" marker-end="url(#aArch)" color="var(--ext)"/>
+        <text x="587" y="340" text-anchor="middle" fill="var(--muted)">messages.parse · เมื่อมีคนกด</text>
+      </g>
+    </svg>
+    <figcaption><b>เส้นทึบ</b> = ทำงานอยู่บน prod · <b>เส้นประ</b> = เชื่อมไว้ในโค้ดแต่ปิดบน prod · LINE และ AI อยู่หลัง adapter ที่ค่าเริ่มต้นเป็น mock ต้องตั้ง <code>live</code> อย่างชัดเจนถึงจะเรียกของจริง เครื่อง dev จึงไม่มีทางเผลอส่งข้อความถึงลูกค้าจริง</figcaption>
+  </figure>
+
+  <h3>ลำดับการประมวลผล webhook</h3>
+  <p class="lead">ลำดับนี้ห้ามสลับ — โดยเฉพาะข้อ 1 ต้องทำกับไบต์ดิบก่อน <code>express.json</code> จะ parse ไม่งั้นลายเซ็นไม่มีวันตรง และ "วิธีแก้" ที่เย้ายวนคือปิดการตรวจ</p>
+  <ol class="steps">
+    <li><span>ตรวจ <code>X-Line-Signature</code> ด้วย HMAC-SHA256 จากไบต์ดิบ เทียบแบบ constant time</span><span class="stop">ลายเซ็นไม่มีหรือไม่ตรง → <code>401</code> ไม่เขียนแม้แต่ log row</span></li>
+    <li><span>parse JSON แล้ว<b>ตอบ LINE <code>200</code> ทันที</b> งานที่เหลือทำหลังตอบ</span><span class="stop">body ไม่ใช่ JSON → <code>400</code></span></li>
+    <li><span><code>INSERT</code> ลง <code>line_webhook_events</code> โดยใช้ <code>webhookEventId</code> เป็น primary key — ให้ constraint ตัดสิน ไม่อ่านเช็คก่อนเขียน</span><span class="stop">ชน primary key → เป็นการส่งซ้ำ ข้ามทั้ง event</span></li>
+    <li><span>หาผู้ติดต่อจาก <code>line_user_id</code> ถ้าไม่มี ดึงชื่อจาก LINE profile แล้วสร้างใหม่</span></li>
+    <li><span>หา lead ที่ยังไม่ปิดของผู้ติดต่อนี้ ถ้าปิดหมดแล้ว สร้าง lead ใหม่ขั้น New · ยังไม่มีเจ้าของ</span></li>
+    <li><span>บันทึกข้อความขาเข้า + timeline <code>message_received</code> แล้วอัปเดตสถานะ event เป็น processed</span></li>
+  </ol>
+
+  <h3>สถานะที่ต้องรู้ก่อนแตะ logic</h3>
+  <figure>
+    <svg viewBox="0 0 922 300" role="img" aria-label="ข้อความขาออกเริ่มที่ pending ไป sent เมื่อ LINE ตอบสำเร็จ หรือ failed เมื่อได้ 4xx หรือครบสามครั้ง คำแนะนำ AI เริ่มที่ proposed ไป approved เมื่อส่งร่าง หรือ rejected เมื่อปฏิเสธ lead สลับระหว่างไม่มีเจ้าของกับมีเจ้าของผ่านการรับและการปล่อย">
+      <defs>
+        <marker id="aSt" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><polygon points="0,0 9,4.5 0,9" fill="currentColor"/></marker>
+      </defs>
+      <g font-family="var(--mono)" font-size="12">
+        <text x="16" y="62" font-weight="600" fill="var(--ink)">messages</text>
+        <text x="16" y="80" fill="var(--muted)" font-size="11">ขาออก · send_status</text>
+        <text x="16" y="162" font-weight="600" fill="var(--ink)">ai_suggestions</text>
+        <text x="16" y="180" fill="var(--muted)" font-size="11">status</text>
+        <text x="16" y="256" font-weight="600" fill="var(--ink)">leads</text>
+        <text x="16" y="274" fill="var(--muted)" font-size="11">owner_id · needs_triage</text>
+      </g>
+      <line x1="16" y1="118" x2="906" y2="118" stroke="var(--line)"/>
+      <line x1="16" y1="214" x2="906" y2="214" stroke="var(--line)"/>
+
+      <g font-family="var(--mono)" font-size="12.5">
+        <!-- messages -->
+        <rect x="220" y="52" width="130" height="36" rx="18" fill="var(--panel)" stroke="var(--sys)" stroke-width="1.6"/>
+        <text x="285" y="75" text-anchor="middle" fill="var(--ink)">pending</text>
+        <rect x="470" y="22" width="130" height="36" rx="18" fill="var(--cust-soft)" stroke="var(--cust)" stroke-width="1.6"/>
+        <text x="535" y="45" text-anchor="middle" fill="var(--ink)">sent</text>
+        <rect x="470" y="72" width="130" height="36" rx="18" fill="var(--warn-soft)" stroke="var(--warn)" stroke-width="1.6"/>
+        <text x="535" y="95" text-anchor="middle" fill="var(--ink)">failed</text>
+
+        <!-- ai_suggestions -->
+        <rect x="220" y="152" width="130" height="36" rx="18" fill="var(--ai-soft)" stroke="var(--ai)" stroke-width="1.6"/>
+        <text x="285" y="175" text-anchor="middle" fill="var(--ink)">proposed</text>
+        <rect x="470" y="128" width="130" height="36" rx="18" fill="var(--cust-soft)" stroke="var(--cust)" stroke-width="1.6"/>
+        <text x="535" y="151" text-anchor="middle" fill="var(--ink)">approved</text>
+        <rect x="470" y="176" width="130" height="36" rx="18" fill="var(--ext-soft)" stroke="var(--ext)" stroke-width="1.6"/>
+        <text x="535" y="199" text-anchor="middle" fill="var(--ink)">rejected</text>
+
+        <!-- leads -->
+        <rect x="220" y="244" width="150" height="36" rx="18" fill="var(--sales-soft)" stroke="var(--sales)" stroke-width="1.6"/>
+        <text x="295" y="267" text-anchor="middle" fill="var(--ink)">ไม่มีเจ้าของ</text>
+        <rect x="560" y="244" width="130" height="36" rx="18" fill="var(--panel)" stroke="var(--sales)" stroke-width="1.6"/>
+        <text x="625" y="267" text-anchor="middle" fill="var(--ink)">มีเจ้าของ</text>
+      </g>
+
+      <g stroke="currentColor" stroke-width="1.4" fill="none" marker-end="url(#aSt)">
+        <line x1="350" y1="66" x2="468" y2="42"/>
+        <line x1="350" y1="76" x2="468" y2="88"/>
+        <line x1="350" y1="166" x2="468" y2="148"/>
+        <line x1="350" y1="176" x2="468" y2="192"/>
+        <line x1="370" y1="255" x2="558" y2="255"/>
+        <line x1="560" y1="270" x2="372" y2="270"/>
+      </g>
+      <path d="M262 52 C250 26 320 26 308 50" fill="none" stroke="currentColor" stroke-width="1.2" marker-end="url(#aSt)"/>
+
+      <g font-family="var(--sans)" font-size="11.5" fill="var(--muted)">
+        <text x="285" y="24" text-anchor="middle">5xx ลองใหม่</text>
+        <text x="616" y="45">LINE ตอบสำเร็จ · มี approved_by</text>
+        <text x="616" y="95">4xx ทันที · หรือ 5xx ครบ 3 ครั้ง · retry ได้ด้วยสคริปต์</text>
+        <text x="616" y="151">ส่งร่างนั้นออกไป · มี decided_by</text>
+        <text x="616" y="199">ปฏิเสธ · ไม่มีอะไรถูกส่ง · มี decided_by</text>
+        <text x="464" y="248" text-anchor="middle">รับ lead</text>
+        <text x="464" y="290" text-anchor="middle">ปล่อยคืนคิว</text>
+        <text x="706" y="267">needs_triage = false</text>
+      </g>
+    </svg>
+    <figcaption><b>กฎที่ฐานข้อมูลบังคับเอง</b> — <code>sent</code> ต้องมีผู้อนุมัติ · <code>approved</code>/<code>rejected</code> ต้องมีคนตัดสิน · lead ที่มีเจ้าของจะอยู่ในคิวรอคัดกรองไม่ได้ · ผู้ช่วย AI เขียนได้แค่ <code>proposed</code> และติดธง <code>degraded</code> เมื่อมาจากกติกาสำรอง</figcaption>
+  </figure>
+
+  <h3>สิ่งที่ถูกบันทึกโดยไม่ต้องเขียนเอง</h3>
+  <div class="grid">
+    <div class="card">
+      <span class="role" style="color:var(--sys);background:var(--sys-soft)">authorship</span>
+      <p><code>created_by</code> / <code>updated_by</code> ทุกตาราง เขียนโดย Sequelize hook จาก <code>actorId</code> ที่ส่งมากับ query</p>
+    </div>
+    <div class="card">
+      <span class="role" style="color:var(--sys);background:var(--sys-soft)">audit history</span>
+      <p>ทุก update และ soft delete ลง <code>tbl_audit_history</code> พร้อม <code>old_json</code> / <code>new_json</code> · <code>password_hash</code> ไม่ถูกคัดลอก</p>
+    </div>
+    <div class="card">
+      <span class="role" style="color:var(--sys);background:var(--sys-soft)">snapshot</span>
+      <p>ข้อมูลผู้ติดต่อ บริษัท เจ้าของ ณ เวลานั้น เก็บเป็น <code>*_data_json</code> — ตอบได้ว่า "ตอนมอบหมาย บริษัทชื่ออะไร"</p>
+    </div>
+  </div>
+  <p class="lead" style="margin-top:14px">bulk update ที่จะหลบ audit hook ถูก guard ปฏิเสธนอก production — ถ้าจำเป็นให้ใช้ <code>instance.update()</code> หรือ <code>individualHooks: true</code></p>
+
+  <h3>ตัวแปรบน Railway</h3>
+  <p class="lead">แสดงแค่ชื่อและค่าที่ไม่ใช่ความลับ ค่าที่เป็น secret อยู่ใน Railway Variables เท่านั้น</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Service</th><th>ตัวแปร</th><th>ค่า / หมายเหตุ</th></tr></thead>
+      <tbody>
+        <tr><td><b>ai-crm</b> <span class="muted">(API)</span></td><td><code>MYSQL_URL</code></td><td>อ้างอิง <code>${{MySQL.MYSQL_URL}}</code> ไม่ก๊อปค่า</td></tr>
+        <tr><td></td><td><code>PORT</code></td><td><code>4000</code> · ต้องตรงกับ target port ของ domain</td></tr>
+        <tr><td></td><td><code>SESSION_SECRET</code> <code>LINE_CHANNEL_SECRET</code> <code>LINE_CHANNEL_ACCESS_TOKEN</code></td><td class="muted">secret</td></tr>
+        <tr><td></td><td><code>LINE_ADAPTER</code></td><td><code>live</code></td></tr>
+        <tr><td></td><td><code>AI_ADAPTER</code></td><td><code>mock</code> · เปิดจริงต้องเพิ่ม <code>AI_API_KEY</code> <code>AI_MODEL</code></td></tr>
+        <tr><td></td><td><code>CORS_ORIGINS</code></td><td>ไม่ตั้ง = ไม่อนุญาตเว็บไหนเรียกข้ามโดเมน (ถูกต้องแล้ว)</td></tr>
+        <tr><td><b>miraculous-essence</b> <span class="muted">(เว็บ)</span></td><td><code>API_BASE_URL</code></td><td>URL ของ API · อ่านตอน build แก้แล้วต้อง redeploy</td></tr>
+        <tr><td></td><td><code>PORT</code></td><td>Railway ใส่ <code>8080</code> ให้เอง ไม่แสดงในหน้า Variables · domain ต้องชี้ 8080</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>ช่องที่ต้องเติมก่อนส่งมอบ</h3>
+  <ul class="clean todo">
+    <li><b>LINE Basic ID และ QR</b> — ยังเป็น placeholder ใน <code>docs/line-integration.md</code></li>
+    <li><b>AI โหมดจริง</b> — ต้องมี API key แยกจาก Claude Pro พร้อม spend limit และ circuit breaker ตาม README หัวข้อ 8 ข้อ 1</li>
+    <li><b>วันหมดอายุ Railway trial</b> — ลิงก์ใช้ไม่ได้หลังจากนั้น ต้องย้าย plan หรือแจ้งผู้ประเมินให้รันด้วย <code>docker compose</code></li>
+    <li><b>TCP Proxy ของ MySQL</b> — ยืนยันว่าลบแล้วหลังใช้เปลี่ยนรหัสผ่านบัญชีสาธิต</li>
+    <li><b>การ backup ฐานข้อมูล</b> — ยังไม่ได้กำหนดรอบและที่เก็บ</li>
+    <li><b>บัญชีสาธิต</b> — ส่งแยกทางอีเมล <b>อย่าใส่รหัสผ่านจริงในเอกสารนี้หรือใน repo</b></li>
+  </ul>
+</section>
+
+<footer>
+  <p>เรียบเรียงจาก: README.md · docs/assumptions.md (A1–A46) · docs/api-notes.md · docs/line-integration.md · docs/deploy.md · skills/crm-copilot/SKILL.md</p>
+  <p>KM Handover · AI CRM · อ้างอิงโค้ดที่ commit 194c0b2 บน main</p>
+</footer>
+
+</div>
