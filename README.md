@@ -9,6 +9,7 @@
 | คลิป walkthrough | [Google Drive](https://drive.google.com/file/d/1JjynAUx6mbLX8UkRuCdQNhR8BlKO6WPA/view?usp=sharing) — 1:32 นาที ไม่มีเสียง · ลำดับฉากด้านล่าง |
 | เว็บที่ติดตั้งแล้ว | https://miraculous-essence-production-509a.up.railway.app |
 | API ที่ติดตั้งแล้ว | https://ai-crm-production-dee4.up.railway.app |
+| LINE OA | https://lin.ee/SBRcE05 · `@922dzgdz` · [QR code](docs/brand/line-oa-qr.png) — ทักแล้วดู lead ใหม่ในคิวรอคัดกรอง ([วิธีทดสอบ](docs/line-integration.md)) |
 | โค้ด API | [`api/`](api) — Node 22 · Express 4 · Sequelize 6 · MySQL 8 |
 | โค้ดเว็บ | [`web/`](web) — Next.js 15 (App Router) · TypeScript |
 | AI skill | [`skills/crm-copilot/SKILL.md`](skills/crm-copilot/SKILL.md) |

@@ -11,10 +11,13 @@
 
 | | |
 |---|---|
-| **LINE OA** | `<ใส่ Basic ID เช่น @123abcde>` |
-| **QR code** | `docs/brand/line-oa-qr.png` |
+| **ลิงก์เพิ่มเพื่อน** | https://lin.ee/SBRcE05 |
+| **Basic ID** | `@922dzgdz` |
+| **QR code** | ด้านล่าง · ไฟล์ [`docs/brand/line-oa-qr.png`](brand/line-oa-qr.png) |
 
-สแกน QR หรือค้นหา Basic ID ในแอป LINE แล้วกดเพิ่มเพื่อน
+<img src="brand/line-oa-qr.png" alt="QR code สำหรับเพิ่มเพื่อน LINE OA ของ AI CRM" width="200">
+
+เปิดลิงก์บนมือถือ สแกน QR หรือค้นหา Basic ID ในแอป LINE แล้วกดเพิ่มเพื่อน
 
 ### 2. ทักข้อความเข้าไป
 
