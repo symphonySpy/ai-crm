@@ -6,6 +6,7 @@
 
 | ส่วน | ที่อยู่ |
 |---|---|
+| เว็บที่ติดตั้งแล้ว | https://miraculous-essence-production-509a.up.railway.app |
 | API ที่ติดตั้งแล้ว | https://ai-crm-production-dee4.up.railway.app |
 | โค้ด API | [`api/`](api) — Node 22 · Express 4 · Sequelize 6 · MySQL 8 |
 | โค้ดเว็บ | [`web/`](web) — Next.js 15 (App Router) · TypeScript |

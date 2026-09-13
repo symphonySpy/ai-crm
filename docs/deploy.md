@@ -209,6 +209,19 @@ npm run deploy:seed
 | `API_BASE_URL` | `https://<โดเมนของ service API>` เช่น `https://ai-crm-production-dee4.up.railway.app` |
 
 4. **Settings → Networking → Generate Domain** เพื่อให้เว็บมี URL สาธารณะ
+   **target port ต้องเป็น `8080`** — ดูหัวข้อถัดไป
+
+**ติดตั้งแล้ว:** https://miraculous-essence-production-509a.up.railway.app
+
+### พอร์ต: ทำไมได้ 502 ทั้งที่ deploy ขึ้นสีเขียว
+
+Railway ใส่ `PORT=8080` ให้ตอนรัน **โดยไม่แสดงในหน้า Variables** แอปจึงฟังที่ 8080
+(`next start -p ${PORT:-3000}`) ถ้าตอน Generate Domain ใส่ target port เป็นค่าอื่น
+proxy จะส่งไปผิดพอร์ต ได้ 502 พร้อม header `x-railway-fallback: true`
+ขณะที่สถานะ deploy ยังเป็น Active และ log ไม่มีอะไรผิดปกติ
+
+วิธีเช็คเร็วที่สุด: เปิด **Deploy Logs** ดูบรรทัด `- Network: http://[::]:<พอร์ต>`
+แล้วตั้ง target port ของ domain ให้ตรงกับเลขนั้น
 
 `web/railway.json` กำหนด start command และ health check ที่ `/login` ไว้แล้ว
 
