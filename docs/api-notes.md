@@ -180,7 +180,7 @@ CORS_ORIGINS=https://crm.example.com,http://localhost:3000
 | `GET` | `/:id` | รายละเอียด + timeline 100 รายการล่าสุด + **50 ข้อความล่าสุด** (`hasOlderMessages`) + คำแนะนำ AI |
 | `POST` | `/` | สร้าง lead |
 | `PATCH` | `/:id/stage` | เปลี่ยน stage · บันทึกผู้ทำและต้นทางปลายทาง |
-| `PATCH` | `/:id/owner` | มอบหมายเจ้าของ · ธง triage เปลี่ยนตาม |
+| `PATCH` | `/:id/owner` | มอบหมายเจ้าของ · ธง triage เปลี่ยนตาม · `sales` ได้แค่รับ lead ว่าง/ปล่อย lead ตัวเอง (`403`) · มีเจ้าของไปแล้ว `409` (A3) |
 | `POST` | `/:id/notes` | เพิ่มบันทึกลง timeline |
 
 **query ของ `GET /`**

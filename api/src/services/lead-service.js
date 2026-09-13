@@ -3,7 +3,7 @@
 const { Op } = require('sequelize');
 const db = require('../models');
 const { LEAD_STAGES } = require('../constants/enums');
-const { notFound, badRequest } = require('../middleware/errors');
+const { notFound, badRequest, forbidden, conflict } = require('../middleware/errors');
 const conversationService = require('./conversation-service');
 
 // Everything a lead screen needs about the records it points at. Kept here so the list,
@@ -208,6 +208,39 @@ async function changeStage({ leadId, toStage, actor, note }) {
 }
 
 /**
+ * Who may change a lead's owner, and to whom.
+ *
+ * A3 limits sending a LINE message to the lead's owner. On its own that rule was a
+ * door with the key taped to it: a salesperson could set themselves as owner of a
+ * colleague's lead and then send. Ownership is what the sending rule rests on, so
+ * changing it is restricted too:
+ *
+ *   manager   any change — assign, reassign, clear.
+ *   sales     claim a lead nobody owns, for themselves;
+ *             release a lead they own, back to triage.
+ *             Nothing else: not taking a colleague's lead, not handing an unowned lead
+ *             to someone else, not releasing someone else's.
+ *
+ * Exported for the tests, which state each rule as a case.
+ */
+function assertMayChangeOwner({ actor, currentOwnerId, targetOwnerId }) {
+  if (actor.role === 'manager') return;
+  // Setting the owner it already has changes nothing, so there is nothing to refuse.
+  if (currentOwnerId === targetOwnerId && targetOwnerId === actor.id) return;
+
+  const claiming = currentOwnerId === null && targetOwnerId === actor.id;
+  const releasing = currentOwnerId === actor.id && targetOwnerId === null;
+  if (claiming || releasing) return;
+
+  // Claiming a lead that someone else has just claimed is a race lost, not a rule
+  // broken — 409 lets the screen say "already taken" rather than "not allowed".
+  if (currentOwnerId !== null && currentOwnerId !== actor.id && targetOwnerId === actor.id) {
+    throw conflict('This lead already has an owner');
+  }
+  throw forbidden('Only a manager can reassign a lead that is not yours to claim or release');
+}
+
+/**
  * Assign or reassign the owner.
  *
  * The triage flag moves with ownership because the database insists on it: an unowned
@@ -217,8 +250,13 @@ async function changeStage({ leadId, toStage, actor, note }) {
  */
 async function assignOwner({ leadId, ownerId, actor }) {
   const id = await db.sequelize.transaction(async (transaction) => {
-    const lead = await db.Lead.findByPk(leadId, { transaction });
+    // Row lock, held until commit. Two salespeople pressing "claim" on the same triage
+    // lead at the same moment would otherwise both read owner_id = NULL, both pass the
+    // check below, and the second write would silently take the lead from the first.
+    const lead = await db.Lead.findByPk(leadId, { transaction, lock: transaction.LOCK.UPDATE });
     if (!lead) throw notFound('Lead');
+
+    assertMayChangeOwner({ actor, currentOwnerId: lead.owner_id, targetOwnerId: ownerId || null });
 
     if (ownerId) {
       const owner = await db.User.findByPk(ownerId, { transaction });
@@ -270,6 +308,7 @@ async function addNote({ leadId, note, actor }) {
 
 module.exports = {
   LEAD_INCLUDE,
+  assertMayChangeOwner,
   listLeads,
   pipelineSummary,
   getLeadDetail,
