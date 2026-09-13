@@ -255,12 +255,17 @@ export default function LeadDetailPage() {
               <select
                 value={lead.stage}
                 disabled={busy === 'stage'}
-                onChange={(e) =>
+                onChange={(e) => {
+                  // Read now, not after the await. The select is controlled by
+                  // lead.stage, so by the time the request returns React has reset
+                  // it to the old stage, and the notice would announce the stage
+                  // the lead just left.
+                  const toStage = e.target.value;
                   run('stage', async () => {
-                    await leadService.changeStage(lead.id, e.target.value);
-                    return `เปลี่ยนขั้นเป็น ${e.target.value} แล้ว`;
-                  })
-                }
+                    await leadService.changeStage(lead.id, toStage);
+                    return `เปลี่ยนขั้นเป็น ${toStage} แล้ว`;
+                  });
+                }}
               >
                 {LEAD_STAGES.map((s) => (
                   <option key={s} value={s}>
