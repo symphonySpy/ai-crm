@@ -126,6 +126,28 @@ describe('lead ownership', () => {
     });
   });
 
+  describe('timeline note', () => {
+    it('names people instead of printing their ids', async () => {
+      const lead = await newLead(users.bob.id);
+      await setOwner('manager', lead.id, users.alice.id);
+      await setOwner('manager', lead.id, null);
+
+      const notes = (
+        await db.Activity.findAll({
+          where: { lead_id: lead.id, type: 'owner_changed' },
+          order: [['occurred_at', 'ASC'], ['id', 'ASC']],
+        })
+      ).map((a) => a.note);
+
+      expect(notes).toEqual([
+        `มอบหมายให้ ${users.alice.name} (เดิม: ${users.bob.name})`,
+        `ปล่อยคืนคิวรอคัดกรอง (เดิม: ${users.alice.name})`,
+      ]);
+      // The regression this guards against: an id on a screen people read.
+      for (const note of notes) expect(note).not.toMatch(/[0-9a-f]{8}-[0-9a-f]{4}-/i);
+    });
+  });
+
   describe('manager', () => {
     it('can reassign, assign to anyone and clear', async () => {
       const lead = await newLead(users.bob.id);

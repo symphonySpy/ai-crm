@@ -241,6 +241,21 @@ function assertMayChangeOwner({ actor, currentOwnerId, targetOwnerId }) {
 }
 
 /**
+ * The timeline line for an ownership change, in the words a salesperson reads.
+ *
+ * Names, not ids. The timeline is read by people; a UUID there answers nothing. And the
+ * name is the one in force at the moment of the change — the same point-in-time rule as
+ * the *_data_json snapshots — so renaming a user later does not rewrite who a lead was
+ * handed to last month.
+ *
+ * Who did it is already on the entry as the actor, so the note only says what changed.
+ */
+function ownerChangeNote({ owner, previousOwner }) {
+  const was = previousOwner ? ` (เดิม: ${previousOwner.name})` : '';
+  return owner ? `มอบหมายให้ ${owner.name}${was}` : `ปล่อยคืนคิวรอคัดกรอง${was}`;
+}
+
+/**
  * Assign or reassign the owner.
  *
  * The triage flag moves with ownership because the database insists on it: an unowned
@@ -258,13 +273,17 @@ async function assignOwner({ leadId, ownerId, actor }) {
 
     assertMayChangeOwner({ actor, currentOwnerId: lead.owner_id, targetOwnerId: ownerId || null });
 
+    let owner = null;
     if (ownerId) {
-      const owner = await db.User.findByPk(ownerId, { transaction });
+      owner = await db.User.findByPk(ownerId, { transaction });
       if (!owner) throw notFound('Owner');
       if (!owner.is_active) throw badRequest('Cannot assign a lead to a deactivated user');
     }
 
-    const previousOwner = lead.owner_id;
+    const previousOwner = lead.owner_id
+      ? await db.User.findByPk(lead.owner_id, { attributes: ['id', 'name'], transaction })
+      : null;
+
     await lead.update(
       { owner_id: ownerId || null, needs_triage: !ownerId },
       { transaction, actorId: actor.id },
@@ -275,9 +294,7 @@ async function assignOwner({ leadId, ownerId, actor }) {
         lead_id: lead.id,
         actor_id: actor.id,
         type: 'owner_changed',
-        note: ownerId
-          ? `Owner set to ${ownerId}${previousOwner ? ` (was ${previousOwner})` : ''}`
-          : 'Owner cleared; returned to triage',
+        note: ownerChangeNote({ owner, previousOwner }),
         occurred_at: new Date(),
       },
       { transaction, actorId: actor.id },
